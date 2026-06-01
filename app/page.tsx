@@ -1,65 +1,86 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Client } from "@/lib/models/Client";
+import { Recipe } from "@/lib/models/Recipe";
+import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import { ensureDb } from "@/lib/db-ready";
+import { SetupRequired } from "@/components/SetupRequired";
+import { Card, PageHeader } from "@/components/ui";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  let stats = { clients: 0, recipes: 0, ingredients: 0 };
+  const dbReady = await ensureDb();
+
+  if (dbReady) {
+    try {
+      const [clients, recipes, ingredients] = await Promise.all([
+        Client.countDocuments(),
+        Recipe.countDocuments(),
+        IngredientProduct.countDocuments(),
+      ]);
+      stats = { clients, recipes, ingredients };
+    } catch {
+      // connection failed
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      {!dbReady && (
+        <div className="mb-8">
+          <SetupRequired />
+        </div>
+      )}
+      <PageHeader
+        title="Recipe costing"
+        description="Manage clients, ingredient costs from distributors, and cost out recipes line by line."
+      />
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Clients", value: stats.clients, href: "/clients" },
+          { label: "Recipes", value: stats.recipes, href: "/clients" },
+          { label: "Ingredient prices", value: stats.ingredients, href: "/ingredients" },
+        ].map((item) => (
+          <Link key={item.label} href={item.href}>
+            <Card className="transition hover:border-emerald-300 hover:shadow-md">
+              <p className="text-sm text-stone-500">{item.label}</p>
+              <p className="mt-1 text-3xl font-semibold text-emerald-800">
+                {item.value}
+              </p>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <h2 className="font-semibold">Quick start</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-stone-600">
+            <li>
+              Add ingredients with vendor pack pricing (e.g. 6×10 lb ketchup @
+              $75.23).
+            </li>
+            <li>Or scan a distributor invoice to import prices with AI.</li>
+            <li>Create a client and paste their recipe to see line-item costs.</li>
+          </ol>
+        </Card>
+        <Card>
+          <h2 className="font-semibold">Example</h2>
+          <p className="mt-2 text-sm text-stone-600">
+            Ketchup from Ben E. Keith: 6 units × 10 lb = 60 lb per case at
+            $75.23 → <strong>$1.25/lb</strong>. A recipe using{" "}
+            <strong>3.4 lb</strong> costs <strong>$4.26</strong> for that line.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/ingredients"
+            className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            Manage ingredients →
+          </Link>
+        </Card>
+      </div>
     </div>
   );
 }
