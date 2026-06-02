@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { IngredientForm } from "@/components/IngredientForm";
+import { IngredientSpreadsheetImport } from "@/components/IngredientSpreadsheetImport";
 import { formatMoney, formatWeightPerPound } from "@/lib/costing";
 import { Button, Card, Field, Input } from "@/components/ui";
 import type { WeightUnit } from "@/lib/types";
@@ -37,7 +38,9 @@ export function IngredientCatalog({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div>
+      <IngredientSpreadsheetImport />
+      <div className="grid gap-8 lg:grid-cols-2">
       <div>
         <Card className="mb-6">
           <form onSubmit={search} className="flex gap-2">
@@ -126,6 +129,7 @@ export function IngredientCatalog({
           </button>
         )}
       </Card>
+      </div>
     </div>
   );
 }
