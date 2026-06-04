@@ -6,7 +6,7 @@ import { Recipe } from "@/lib/models/Recipe";
 import { Client } from "@/lib/models/Client";
 import { formatMoney } from "@/lib/costing";
 import { Card, PageHeader } from "@/components/ui";
-import { RecalculateRecipeButton } from "@/components/RecalculateRecipeButton";
+import { RecipeDetailActions } from "@/components/RecipeDetailActions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,13 @@ export default async function RecipeDetailPage({ params }: Props) {
       <PageHeader
         title={recipe.name}
         description={client ? `Client: ${client.name}` : undefined}
-        action={<RecalculateRecipeButton recipeId={id} />}
+        action={
+          <RecipeDetailActions
+            recipeId={id}
+            recipeName={recipe.name}
+            clientId={String(recipe.clientId)}
+          />
+        }
       />
 
       {client && (

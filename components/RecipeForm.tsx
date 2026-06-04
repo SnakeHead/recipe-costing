@@ -16,14 +16,27 @@ interface PreviewLine {
   matchNote?: string;
 }
 
-export function RecipeForm({ clientId }: { clientId: string }) {
+export function RecipeForm({
+  clientId,
+  recipeId,
+  initial,
+}: {
+  clientId: string;
+  recipeId?: string;
+  initial?: {
+    name: string;
+    rawText: string;
+    lines?: PreviewLine[];
+    totalCost?: number;
+  };
+}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [rawText, setRawText] = useState(
-    "Ketchup, 3.4 lb\nMayonnaise, 1.5 lb\n",
-  );
-  const [preview, setPreview] = useState<PreviewLine[]>([]);
-  const [totalCost, setTotalCost] = useState(0);
+  const isEdit = Boolean(recipeId);
+
+  const [name, setName] = useState(initial?.name ?? "");
+  const [rawText, setRawText] = useState(initial?.rawText ?? "");
+  const [preview, setPreview] = useState<PreviewLine[]>(initial?.lines ?? []);
+  const [totalCost, setTotalCost] = useState(initial?.totalCost ?? 0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -53,17 +66,33 @@ export function RecipeForm({ clientId }: { clientId: string }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!name.trim()) {
+      setError("Recipe name is required");
+      return;
+    }
+    if (!rawText.trim() && preview.length === 0) {
+      setError("Add ingredients in the text area or preview costs first");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
-    const res = await fetch(`/api/clients/${clientId}/recipes`, {
-      method: "POST",
+    const payload = {
+      name,
+      rawText,
+      lines: preview.length > 0 ? preview : undefined,
+    };
+
+    const url = isEdit
+      ? `/api/recipes/${recipeId}`
+      : `/api/clients/${clientId}/recipes`;
+    const method = isEdit ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        rawText,
-        lines: preview.length > 0 ? preview : undefined,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     setLoading(false);
@@ -73,7 +102,7 @@ export function RecipeForm({ clientId }: { clientId: string }) {
       return;
     }
 
-    router.push(`/recipes/${data._id}`);
+    router.push(`/recipes/${isEdit ? recipeId : data._id}`);
     router.refresh();
   }
 
@@ -163,9 +192,20 @@ export function RecipeForm({ clientId }: { clientId: string }) {
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={loading}>
-        {loading ? "Saving…" : "Save recipe"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={loading}>
+          {loading ? "Saving…" : isEdit ? "Save changes" : "Save recipe"}
+        </Button>
+        {isEdit && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.push(`/recipes/${recipeId}`)}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
     </form>
   );
 }
