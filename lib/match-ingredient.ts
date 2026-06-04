@@ -1,4 +1,8 @@
 import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import {
+  MIN_MATCH_SCORE,
+  scoreIngredientSimilarity,
+} from "@/lib/ingredient-match";
 import { calculateCostPerPound, calculateLineCost } from "./costing";
 import type { CostedRecipeLine, ParsedRecipeLine } from "./types";
 
@@ -23,7 +27,7 @@ export async function costRecipeLines(
       };
     }
 
-    const product = match as ProductMatch;
+    const product = match as ScoredMatch;
 
     const costPerPound =
       product.costPerPound ??
@@ -40,7 +44,9 @@ export async function costRecipeLines(
         ingredientProductId: String(product._id),
         vendor: product.vendor,
         brand: product.brand,
-        matchNote: "Could not calculate cost per pound",
+        matchNote: product.matchScore < 0.75
+          ? `Matched "${product.name}" (${Math.round(product.matchScore * 100)}% similar) — could not calculate cost per pound`
+          : `Matched "${product.name}" — could not calculate cost per pound`,
       };
     }
 
@@ -50,6 +56,11 @@ export async function costRecipeLines(
       costPerPound,
     );
 
+    const matchHint =
+      product.matchScore >= 0.99
+        ? undefined
+        : `Matched inventory: ${product.name}`;
+
     return {
       ...line,
       ingredientProductId: String(product._id),
@@ -57,6 +68,7 @@ export async function costRecipeLines(
       brand: product.brand,
       costPerPound,
       lineCost: lineCost ?? undefined,
+      matchNote: matchHint,
     };
   });
 }
@@ -73,42 +85,37 @@ type ProductMatch = {
   costPerPound?: number;
 };
 
+type ScoredMatch = ProductMatch & { matchScore: number };
+
 type AmbiguousMatch = { ambiguous: true; message: string };
 
 function findBestMatch(
   name: string,
   products: ProductMatch[],
-): ProductMatch | AmbiguousMatch | null {
-  const normalized = name.trim().toLowerCase();
+): ScoredMatch | AmbiguousMatch | null {
+  const scored = products
+    .map((product) => ({
+      product,
+      score: scoreIngredientSimilarity(name, product.name),
+    }))
+    .filter((entry) => entry.score >= MIN_MATCH_SCORE)
+    .sort((a, b) => b.score - a.score);
 
-  const exact = products.filter((p) => p.name.toLowerCase() === normalized);
-  if (exact.length > 1) {
-    const labels = exact
-      .map((p) => [p.brand, p.vendor].filter(Boolean).join(" / "))
-      .join("; ");
-    return {
-      ambiguous: true,
-      message: `Multiple products match "${name}" (${labels}) — use distinct ingredient names or brands in your database`,
-    };
-  }
-  if (exact.length === 1) return exact[0];
+  if (scored.length === 0) return null;
 
-  const contains = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(normalized) ||
-      normalized.includes(p.name.toLowerCase()),
-  );
-  if (contains.length > 1) {
-    const labels = contains
+  if (scored.length > 1 && scored[0].score - scored[1].score < 0.08) {
+    const labels = scored
       .slice(0, 3)
-      .map((p) => [p.brand, p.vendor].filter(Boolean).join(" / "))
+      .map(
+        (entry) =>
+          `${entry.product.name} (${Math.round(entry.score * 100)}%)`,
+      )
       .join("; ");
     return {
       ambiguous: true,
-      message: `Multiple possible matches for "${name}" (${labels}${contains.length > 3 ? "…" : ""})`,
+      message: `Multiple possible matches for "${name}" — ${labels}${scored.length > 3 ? "…" : ""}`,
     };
   }
-  if (contains.length === 1) return contains[0];
 
-  return contains.sort((a, b) => a.name.length - b.name.length)[0] ?? null;
+  return { ...scored[0].product, matchScore: scored[0].score };
 }

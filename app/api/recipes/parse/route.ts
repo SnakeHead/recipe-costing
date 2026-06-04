@@ -3,16 +3,35 @@ import { parseRecipeText } from "@/lib/parse-recipe";
 import { costRecipeLines } from "@/lib/match-ingredient";
 import { sumLineCosts } from "@/lib/recipe-totals";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import type { ParsedRecipeLine } from "@/lib/types";
 
 export async function POST(request: Request) {
-  const body = await parseJsonBody<{ rawText?: string }>(request);
-  if (!body?.rawText?.trim()) {
-    return jsonError("Recipe text is required");
+  const body = await parseJsonBody<{
+    rawText?: string;
+    lines?: ParsedRecipeLine[];
+  }>(request);
+
+  let parsed: ParsedRecipeLine[] = [];
+
+  if (body?.lines?.length) {
+    parsed = body.lines.filter(
+      (line) =>
+        line.ingredientName?.trim() &&
+        line.quantity > 0 &&
+        line.unit?.trim(),
+    );
+  } else if (body?.rawText?.trim()) {
+    parsed = parseRecipeText(body.rawText);
+  }
+
+  if (parsed.length === 0) {
+    return jsonError(
+      "Add at least one ingredient with a name, amount, and unit",
+    );
   }
 
   try {
     await connectDB();
-    const parsed = parseRecipeText(body.rawText);
     const costed = await costRecipeLines(parsed);
     return jsonOk({
       lines: costed,
