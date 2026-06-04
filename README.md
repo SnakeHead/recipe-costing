@@ -61,7 +61,9 @@ Set the **distributor (vendor)** on the import form (e.g. Sysco) — it is not a
 
 Older column names, an optional Vendor column, and pack shorthand (`6/10#`) still work.
 
-Matching **ingredient + vendor + brand** rows are updated; new combinations are created.
+Imports match on **vendor + Item #** when Item # is present; otherwise **name + vendor + brand**. Rows with the same name but different item numbers are separate products.
+
+On first connect after an upgrade, legacy database indexes are removed automatically.
 
 ## Recipe text formats
 

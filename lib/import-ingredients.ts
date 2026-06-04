@@ -1,4 +1,5 @@
 import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import { buildIngredientUpsertFilter } from "@/lib/ingredient-keys";
 import type { VendorSpreadsheetRow } from "./parse-vendor-spreadsheet";
 
 export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
@@ -8,16 +9,18 @@ export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
     name: string;
     vendor: string;
     brand: string;
+    sku?: string;
     message: string;
   }> = [];
 
   for (const row of rows) {
     try {
-      const filter = {
+      const filter = buildIngredientUpsertFilter({
         name: row.name,
         vendor: row.vendor,
         brand: row.brand,
-      };
+        sku: row.sku,
+      });
 
       const existing = await IngredientProduct.findOne(filter);
 
@@ -44,6 +47,7 @@ export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
         name: row.name,
         vendor: row.vendor,
         brand: row.brand,
+        sku: row.sku,
         message: e instanceof Error ? e.message : "Import failed",
       });
     }

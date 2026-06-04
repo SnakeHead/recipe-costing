@@ -22,7 +22,22 @@ const ingredientProductSchema = new Schema(
   { timestamps: true },
 );
 
-ingredientProductSchema.index({ name: 1, vendor: 1, brand: 1 }, { unique: true });
+// Item # + vendor is the usual key for distributor catalogs (Sysco, Ben E. Keith, etc.)
+ingredientProductSchema.index(
+  { vendor: 1, sku: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { sku: { $gt: "" } },
+  },
+);
+// Manual entries without an item number
+ingredientProductSchema.index(
+  { name: 1, vendor: 1, brand: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { sku: { $eq: "" } },
+  },
+);
 
 ingredientProductSchema.pre("save", function () {
   const cost = calculateCostPerPound(

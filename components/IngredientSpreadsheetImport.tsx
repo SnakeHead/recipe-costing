@@ -23,6 +23,8 @@ interface ParseError {
   message: string;
   name?: string;
   vendor?: string;
+  brand?: string;
+  sku?: string;
 }
 
 export function IngredientSpreadsheetImport() {
@@ -203,7 +205,9 @@ export function IngredientSpreadsheetImport() {
             {errors.slice(0, 10).map((err, i) => (
               <li key={i}>
                 {err.row && err.row > 0 ? `Row ${err.row}: ` : ""}
-                {err.name ? `${err.name} (${err.vendor}): ` : ""}
+                {err.name
+                  ? `${err.name}${err.sku ? ` #${err.sku}` : ""} (${err.vendor}): `
+                  : ""}
                 {err.message}
               </li>
             ))}

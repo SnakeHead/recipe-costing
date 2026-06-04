@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import { buildIngredientUpsertFilter } from "@/lib/ingredient-keys";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 
 export async function GET(request: Request) {
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
             { name: { $regex: q, $options: "i" } },
             { vendor: { $regex: q, $options: "i" } },
             { brand: { $regex: q, $options: "i" } },
+            { sku: { $regex: q, $options: "i" } },
           ],
         }
       : {};
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
 
   try {
     await connectDB();
-    const ingredient = await IngredientProduct.create({
+    const payload = {
       name: body.name.trim(),
       vendor: body.vendor.trim(),
       brand: body.brand?.trim() ?? "",
@@ -66,13 +68,20 @@ export async function POST(request: Request) {
       packPrice: body.packPrice,
       sku: body.sku?.trim() ?? "",
       notes: body.notes?.trim() ?? "",
-    });
+    };
+
+    const filter = buildIngredientUpsertFilter(payload);
+    const ingredient = await IngredientProduct.findOneAndUpdate(
+      filter,
+      payload,
+      { upsert: true, new: true, runValidators: true },
+    );
     return jsonOk(ingredient, 201);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create ingredient";
     if (message.includes("duplicate key")) {
       return jsonError(
-        "This ingredient already exists for that vendor and brand",
+        "An item with this vendor and item number (or name + brand) already exists",
       );
     }
     return jsonError(message, 500);

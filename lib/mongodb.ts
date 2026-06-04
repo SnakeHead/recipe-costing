@@ -32,5 +32,9 @@ export async function connectDB(): Promise<typeof mongoose> {
   }
 
   cached.conn = await cached.promise;
+
+  const { syncIngredientIndexes } = await import("@/lib/sync-ingredient-indexes");
+  await syncIngredientIndexes();
+
   return cached.conn;
 }

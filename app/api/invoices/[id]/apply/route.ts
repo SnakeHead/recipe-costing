@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { Invoice } from "@/lib/models/Invoice";
 import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import { buildIngredientUpsertFilter } from "@/lib/ingredient-keys";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 
 type Params = { params: Promise<{ id: string }> };
@@ -62,21 +63,20 @@ export async function POST(request: Request, { params }: Params) {
         continue;
       }
 
+      const payload = {
+        name: name.trim(),
+        vendor: vendor.trim(),
+        brand: brand.trim(),
+        unitsPerPack,
+        unitSize,
+        weightUnit,
+        packPrice,
+        sku: "",
+      };
+
       const ingredient = await IngredientProduct.findOneAndUpdate(
-        {
-          name: name.trim(),
-          vendor: vendor.trim(),
-          brand: brand.trim(),
-        },
-        {
-          name: name.trim(),
-          vendor: vendor.trim(),
-          brand: brand.trim(),
-          unitsPerPack,
-          unitSize,
-          weightUnit,
-          packPrice,
-        },
+        buildIngredientUpsertFilter(payload),
+        payload,
         { upsert: true, new: true, runValidators: true },
       );
 
