@@ -49,7 +49,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
               productName: l.productName,
               vendor: l.vendor ?? undefined,
               unitsPerPack: l.unitsPerPack ?? undefined,
-              weightPerUnit: l.weightPerUnit ?? undefined,
+              unitSize: l.unitSize ?? undefined,
               weightUnit: (l.weightUnit ?? undefined) as
                 | "lb"
                 | "oz"

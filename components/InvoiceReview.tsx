@@ -10,7 +10,7 @@ interface ExtractedLine {
   productName: string;
   vendor?: string;
   unitsPerPack?: number;
-  weightPerUnit?: number;
+  unitSize?: string;
   weightUnit?: WeightUnit;
   packPrice?: number;
   lineTotal?: number;
@@ -63,7 +63,7 @@ export function InvoiceReview({
       name: lines[index].productName,
       vendor: lines[index].vendor ?? vendor,
       unitsPerPack: lines[index].unitsPerPack,
-      weightPerUnit: lines[index].weightPerUnit,
+      unitSize: lines[index].unitSize,
       weightUnit: lines[index].weightUnit,
       packPrice: lines[index].packPrice ?? lines[index].lineTotal,
     }));
@@ -97,7 +97,7 @@ export function InvoiceReview({
               <th className="px-3 py-2" />
               <th className="px-3 py-2">Product</th>
               <th className="px-3 py-2">Units/pack</th>
-              <th className="px-3 py-2">Wt/unit</th>
+                <th className="px-3 py-2">Unit size</th>
               <th className="px-3 py-2">Price</th>
               <th className="px-3 py-2">Status</th>
             </tr>
@@ -139,13 +139,13 @@ export function InvoiceReview({
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
                     <input
-                      type="number"
-                      className="w-20 rounded border border-stone-200 px-2 py-1"
-                      value={line.weightPerUnit ?? ""}
+                      className="w-28 rounded border border-stone-200 px-2 py-1"
+                      placeholder="#10 can"
+                      value={line.unitSize ?? ""}
                       disabled={line.applied}
                       onChange={(e) =>
                         updateLine(index, {
-                          weightPerUnit: parseFloat(e.target.value) || undefined,
+                          unitSize: e.target.value,
                         })
                       }
                     />

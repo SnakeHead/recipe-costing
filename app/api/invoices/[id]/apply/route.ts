@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: Params) {
       vendor?: string;
       brand?: string;
       unitsPerPack?: number;
-      weightPerUnit?: number;
+      unitSize?: string;
       weightUnit?: "lb" | "oz" | "kg" | "g";
       packPrice?: number;
     }>;
@@ -46,7 +46,9 @@ export async function POST(request: Request, { params }: Params) {
         override?.vendor ?? line.vendor ?? invoice.vendor ?? "Unknown vendor";
       const brand = override?.brand ?? line.brand ?? "";
       const unitsPerPack = override?.unitsPerPack ?? line.unitsPerPack;
-      const weightPerUnit = override?.weightPerUnit ?? line.weightPerUnit;
+      const unitSize = String(
+        override?.unitSize ?? line.unitSize ?? "",
+      ).trim();
       const weightUnit = override?.weightUnit ?? line.weightUnit ?? "lb";
       const packPrice =
         override?.packPrice ?? line.packPrice ?? line.lineTotal;
@@ -54,7 +56,7 @@ export async function POST(request: Request, { params }: Params) {
       if (
         !name ||
         unitsPerPack == null ||
-        weightPerUnit == null ||
+        !unitSize ||
         packPrice == null
       ) {
         continue;
@@ -71,7 +73,7 @@ export async function POST(request: Request, { params }: Params) {
           vendor: vendor.trim(),
           brand: brand.trim(),
           unitsPerPack,
-          weightPerUnit,
+          unitSize,
           weightUnit,
           packPrice,
         },

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IngredientForm } from "@/components/IngredientForm";
 import { IngredientSpreadsheetImport } from "@/components/IngredientSpreadsheetImport";
 import { formatMoney, formatWeightPerPound } from "@/lib/costing";
+import { formatPackLine } from "@/lib/unit-size";
 import { Button, Card, Field, Input } from "@/components/ui";
 import type { WeightUnit } from "@/lib/types";
 
@@ -14,7 +15,7 @@ interface IngredientRow {
   vendor: string;
   brand: string;
   unitsPerPack: number;
-  weightPerUnit: number;
+  unitSize: string;
   weightUnit: WeightUnit;
   packPrice: number;
   costPerPound?: number;
@@ -105,8 +106,12 @@ export function IngredientCatalog({
                       </p>
                       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-stone-500">
                         <span>
-                          {item.unitsPerPack} × {item.weightPerUnit}{" "}
-                          {item.weightUnit} @ {formatMoney(item.packPrice)}
+                          {formatPackLine(
+                            item.unitsPerPack,
+                            item.unitSize,
+                            item.weightUnit,
+                          )}{" "}
+                          @ {formatMoney(item.packPrice)}
                         </span>
                         {item.costPerPound != null && (
                           <span className="text-sm font-medium text-emerald-800">
@@ -144,7 +149,7 @@ export function IngredientCatalog({
                     vendor: editing.vendor,
                     brand: editing.brand,
                     unitsPerPack: editing.unitsPerPack,
-                    weightPerUnit: editing.weightPerUnit,
+                    unitSize: editing.unitSize,
                     weightUnit: editing.weightUnit,
                     packPrice: editing.packPrice,
                     sku: "",

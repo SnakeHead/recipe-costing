@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       costPerPound: calculateCostPerPound(
         row.packPrice,
         row.unitsPerPack,
-        row.weightPerUnit,
+        row.unitSize,
         row.weightUnit,
       ),
     }));

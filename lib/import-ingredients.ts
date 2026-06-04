@@ -28,7 +28,7 @@ export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
           vendor: row.vendor,
           brand: row.brand,
           unitsPerPack: row.unitsPerPack,
-          weightPerUnit: row.weightPerUnit,
+          unitSize: row.unitSize,
           weightUnit: row.weightUnit,
           packPrice: row.packPrice,
           sku: row.sku ?? "",

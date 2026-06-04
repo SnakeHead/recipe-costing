@@ -26,7 +26,7 @@ export async function PATCH(request: Request, { params }: Params) {
     vendor?: string;
     brand?: string;
     unitsPerPack?: number;
-    weightPerUnit?: number;
+    unitSize?: string;
     weightUnit?: "lb" | "oz" | "kg" | "g";
     packPrice?: number;
     sku?: string;
@@ -44,8 +44,8 @@ export async function PATCH(request: Request, { params }: Params) {
         ...(body?.unitsPerPack !== undefined && {
           unitsPerPack: body.unitsPerPack,
         }),
-        ...(body?.weightPerUnit !== undefined && {
-          weightPerUnit: body.weightPerUnit,
+        ...(body?.unitSize !== undefined && {
+          unitSize: body.unitSize.trim(),
         }),
         ...(body?.weightUnit !== undefined && { weightUnit: body.weightUnit }),
         ...(body?.packPrice !== undefined && { packPrice: body.packPrice }),

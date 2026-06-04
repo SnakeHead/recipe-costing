@@ -15,7 +15,7 @@ export function IngredientForm({
     vendor: string;
     brand: string;
     unitsPerPack: number;
-    weightPerUnit: number;
+    unitSize: string;
     weightUnit: WeightUnit;
     packPrice: number;
     sku: string;
@@ -30,9 +30,7 @@ export function IngredientForm({
   const [unitsPerPack, setUnitsPerPack] = useState(
     String(initial?.unitsPerPack ?? 6),
   );
-  const [weightPerUnit, setWeightPerUnit] = useState(
-    String(initial?.weightPerUnit ?? 10),
-  );
+  const [unitSize, setUnitSize] = useState(initial?.unitSize ?? "10");
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(
     initial?.weightUnit ?? "lb",
   );
@@ -47,7 +45,7 @@ export function IngredientForm({
   const previewCost = calculateCostPerPound(
     parseFloat(packPrice) || 0,
     parseFloat(unitsPerPack) || 0,
-    parseFloat(weightPerUnit) || 0,
+    unitSize,
     weightUnit,
   );
 
@@ -61,7 +59,7 @@ export function IngredientForm({
       vendor,
       brand,
       unitsPerPack: parseFloat(unitsPerPack),
-      weightPerUnit: parseFloat(weightPerUnit),
+      unitSize: unitSize.trim(),
       weightUnit,
       packPrice: parseFloat(packPrice),
       sku,
@@ -129,13 +127,11 @@ export function IngredientForm({
             required
           />
         </Field>
-        <Field label="Weight per unit *">
+        <Field label="Unit size *">
           <Input
-            type="number"
-            min="0.001"
-            step="any"
-            value={weightPerUnit}
-            onChange={(e) => setWeightPerUnit(e.target.value)}
+            placeholder="#10 can, 10, 5 gal"
+            value={unitSize}
+            onChange={(e) => setUnitSize(e.target.value)}
             required
           />
         </Field>
@@ -150,6 +146,9 @@ export function IngredientForm({
             <option value="kg">kg</option>
             <option value="g">g</option>
           </select>
+          <p className="mt-1 text-xs text-stone-500">
+            Used when unit size is a number (e.g. 10 lb).
+          </p>
         </Field>
       </div>
       <Field label="Pack price ($) *">
@@ -162,13 +161,18 @@ export function IngredientForm({
           required
         />
       </Field>
-      {previewCost != null && (
+      {previewCost != null ? (
         <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
           Cost per pound: <strong>{formatMoney(previewCost)}</strong>
           <span className="text-emerald-700">
             {" "}
             (e.g. 3.4 lb → {formatMoney(previewCost * 3.4)})
           </span>
+        </p>
+      ) : (
+        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          $/lb is not calculated for this unit size (e.g. #10 can). Pricing is
+          still stored for your records.
         </p>
       )}
       <Field label="SKU">

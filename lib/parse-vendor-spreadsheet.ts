@@ -7,7 +7,7 @@ export interface VendorSpreadsheetRow {
   vendor: string;
   brand: string;
   unitsPerPack: number;
-  weightPerUnit: number;
+  unitSize: string;
   weightUnit: WeightUnit;
   packPrice: number;
   sku?: string;
@@ -25,7 +25,7 @@ type FieldKey =
   | "vendor"
   | "brand"
   | "unitsPerPack"
-  | "weightPerUnit"
+  | "unitSize"
   | "weightUnit"
   | "packPrice"
   | "sku"
@@ -58,11 +58,13 @@ const HEADER_ALIASES: Record<string, FieldKey> = {
   "pack units": "unitsPerPack",
   "case count": "unitsPerPack",
   count: "unitsPerPack",
-  "weight per unit": "weightPerUnit",
-  weightperunit: "weightPerUnit",
-  weight: "weightPerUnit",
-  "unit weight": "weightPerUnit",
-  size: "weightPerUnit",
+  "unit size": "unitSize",
+  unitsize: "unitSize",
+  size: "unitSize",
+  "weight per unit": "unitSize",
+  weightperunit: "unitSize",
+  weight: "unitSize",
+  "unit weight": "unitSize",
   "weight unit": "weightUnit",
   weightunit: "weightUnit",
   unit: "weightUnit",
@@ -108,7 +110,7 @@ function parseNumber(value: unknown): number | null {
 /** Parses shorthand like "6/10#" or "6x10 lb" into units and weight. */
 function parsePackSize(value: unknown): {
   unitsPerPack: number;
-  weightPerUnit: number;
+  unitSize: string;
   weightUnit: WeightUnit;
 } | null {
   const str = String(value ?? "").trim().toLowerCase();
@@ -119,9 +121,12 @@ function parsePackSize(value: unknown): {
   );
   if (slashMatch) {
     const unit = normalizeUnit(slashMatch[3] ?? "lb") ?? "lb";
+    const sizePart = slashMatch[2];
+    const unitPart = slashMatch[3];
+    const unitSize = unitPart ? `${sizePart} ${unitPart}` : sizePart;
     return {
       unitsPerPack: parseFloat(slashMatch[1]),
-      weightPerUnit: parseFloat(slashMatch[2]),
+      unitSize,
       weightUnit: unit,
     };
   }
@@ -170,14 +175,14 @@ export function parseVendorSpreadsheet(
       candidate.has("name") &&
       candidate.has("packPrice") &&
       candidate.has("unitsPerPack") &&
-      candidate.has("weightPerUnit");
+      candidate.has("unitSize");
     const hasPackSizeFormat =
       candidate.has("name") &&
       (candidate.has("packPrice") || candidate.has("packSize"));
     const hasLegacyFormat =
       candidate.has("name") &&
       candidate.has("unitsPerPack") &&
-      candidate.has("weightPerUnit");
+      candidate.has("unitSize");
 
     if (hasVendorFormat || hasPackSizeFormat || hasLegacyFormat) {
       headerIndex = i;
@@ -193,7 +198,21 @@ export function parseVendorSpreadsheet(
         {
           row: 1,
           message:
-            'Could not find a header row. Expected columns like "Item Name", "Brand", "Pack", "Size", "Unit", and "Price" (or similar names).',
+            'Could not find a header row. Expected: Item #, Pack, Size, Unit, Brand, Item Name, Price (or similar names).',
+        },
+      ],
+      skipped: 0,
+    };
+  }
+
+  if (!columnMap.has("vendor") && !defaultVendor.trim()) {
+    return {
+      rows: [],
+      errors: [
+        {
+          row: 0,
+          message:
+            "Set the distributor (vendor) on the import form — your file has no Vendor column.",
         },
       ],
       skipped: 0,
@@ -230,7 +249,7 @@ export function parseVendorSpreadsheet(
     if (!vendor) {
       errors.push({
         row: rowNumber,
-        message: `Missing vendor (distributor) for "${name}" — add a Vendor column or set default vendor`,
+        message: `Missing distributor for "${name}" — set the vendor on the import form`,
       });
       continue;
     }
@@ -238,25 +257,28 @@ export function parseVendorSpreadsheet(
     const brand = String(getCell(row, "brand")).trim();
 
     let unitsPerPack = parseNumber(getCell(row, "unitsPerPack"));
-    let weightPerUnit = parseNumber(getCell(row, "weightPerUnit"));
+    let unitSize = String(getCell(row, "unitSize")).trim();
     let weightUnit =
       normalizeUnit(String(getCell(row, "weightUnit")).trim()) ?? "lb";
 
     const packSize = getCell(row, "packSize");
-    if (packSize && (unitsPerPack == null || weightPerUnit == null)) {
-      const parsed = parsePackSize(packSize);
+    if (packSize) {
+      const packStr = String(packSize).trim();
+      const parsed = parsePackSize(packStr);
       if (parsed) {
-        unitsPerPack = parsed.unitsPerPack;
-        weightPerUnit = parsed.weightPerUnit;
+        if (unitsPerPack == null) unitsPerPack = parsed.unitsPerPack;
+        if (!unitSize) unitSize = parsed.unitSize;
         weightUnit = parsed.weightUnit;
+      } else if (!unitSize) {
+        unitSize = packStr;
       }
     }
 
     const packPrice = parseNumber(getCell(row, "packPrice"));
-    if (unitsPerPack == null || weightPerUnit == null || packPrice == null) {
+    if (unitsPerPack == null || !unitSize || packPrice == null) {
       errors.push({
         row: rowNumber,
-        message: `Incomplete pricing for "${name}" (need pack size and price)`,
+        message: `Incomplete pricing for "${name}" (need pack, unit size, and price)`,
       });
       continue;
     }
@@ -266,7 +288,7 @@ export function parseVendorSpreadsheet(
       vendor,
       brand,
       unitsPerPack,
-      weightPerUnit,
+      unitSize,
       weightUnit,
       packPrice,
       sku: String(getCell(row, "sku")).trim() || undefined,
@@ -279,36 +301,10 @@ export function parseVendorSpreadsheet(
 
 export function buildVendorSpreadsheetTemplate(): Buffer {
   const data = [
-    [
-      "Item #",
-      "Pack",
-      "Size",
-      "Unit",
-      "Vendor",
-      "Brand",
-      "Item Name",
-      "Price",
-    ],
-    [
-      "KECH-001",
-      6,
-      10,
-      "lb",
-      "Ben E. Keith",
-      "Heinz",
-      "Ketchup",
-      75.23,
-    ],
-    [
-      "MAYO-002",
-      4,
-      5,
-      "lb",
-      "Ben E. Keith",
-      "Hellmann's",
-      "Mayonnaise",
-      42.5,
-    ],
+    ["Item #", "Pack", "Size", "Unit", "Brand", "Item Name", "Price"],
+    ["KECH-001", 6, 10, "lb", "Heinz", "Ketchup", 75.23],
+    ["CAN-003", 6, "#10 can", "lb", "Del Monte", "Corn", 48.0],
+    ["MAYO-002", 4, 5, "lb", "Hellmann's", "Mayonnaise", 42.5],
   ];
 
   const sheet = XLSX.utils.aoa_to_sheet(data);

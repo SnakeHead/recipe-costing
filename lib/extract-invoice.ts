@@ -10,7 +10,7 @@ const extractionSchema = z.object({
       vendor: z.string().optional(),
       brand: z.string().optional(),
       unitsPerPack: z.number().optional(),
-      weightPerUnit: z.number().optional(),
+      unitSize: z.string().optional(),
       weightUnit: z.enum(["lb", "oz", "kg", "g"]).optional(),
       packPrice: z.number().optional(),
       quantityOrdered: z.number().optional(),
@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `You extract structured ingredient pricing from food-servi
 For each line item, infer when possible:
 - productName (ingredient name)
 - unitsPerPack (how many units in the case/pack, e.g. 6 for "6/10#")
-- weightPerUnit and weightUnit (e.g. 10 lb per unit)
+- unitSize (e.g. 10, #10 can) and weightUnit when used for weight (e.g. lb)
 - packPrice or lineTotal (use line total if pack price unclear)
 - vendor: distributor on the invoice (header), not the product brand
 - brand: product brand when shown on the line (e.g. Heinz)

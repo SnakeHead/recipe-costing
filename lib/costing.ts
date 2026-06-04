@@ -1,13 +1,16 @@
+import { parseUnitSizeNumeric } from "./unit-size";
 import { toPounds } from "./units";
 import type { WeightUnit } from "./types";
 
 export function calculateCostPerPound(
   packPrice: number,
   unitsPerPack: number,
-  weightPerUnit: number,
+  unitSize: string,
   weightUnit: WeightUnit,
 ): number | null {
-  const totalPounds = toPounds(unitsPerPack * weightPerUnit, weightUnit);
+  const numericSize = parseUnitSizeNumeric(unitSize);
+  if (numericSize === null) return null;
+  const totalPounds = toPounds(unitsPerPack * numericSize, weightUnit);
   if (!totalPounds || totalPounds <= 0) return null;
   return packPrice / totalPounds;
 }

@@ -6,7 +6,7 @@ Cost client recipes using ingredient prices from your food-service distributors 
 
 - **Clients** — name, company, phone, email
 - **Recipes** — paste or upload ingredient lists with weights; automatic line-item costing
-- **Ingredients** — vendor-specific pack pricing (units per pack × weight per unit → cost per pound)
+- **Ingredients** — vendor-specific pack pricing (pack × unit size → cost per pound when numeric)
 - **Excel import** — bulk upload vendor pricing from `.xlsx`, `.xls`, or `.csv`
 - **Invoices** — upload or paste distributor invoices; AI extracts prices into your ingredient database
 
@@ -51,22 +51,15 @@ Cost client recipes using ingredient prices from your food-service distributors 
 
 On **Ingredients**, use **Import from Excel** or download the template (`/api/ingredients/import/template`).
 
-| Column | Required | Examples |
-|--------|----------|----------|
-| Item Name | Yes | Ketchup |
-| Vendor | Yes* | Ben E. Keith (distributor) |
-| Brand | No | Heinz (product brand) |
-| Pack | Yes | 6 (units per case) |
-| Size | Yes | 10 (weight per unit) |
-| Unit | Yes | lb |
-| Price | Yes | 75.23 |
-| Item # | No | KECH-001 |
+Columns left to right:
 
-\*Or set a default **vendor** in the import form if the sheet has no Vendor column.
+| Item # | Pack | Size | Unit | Brand | Item Name | Price |
+|--------|------|------|------|-------|-----------|-------|
+| KECH-001 | 6 | 10 | lb | Heinz | Ketchup | 75.23 |
 
-**Vendor** is the distributor; **brand** is the product label. The same ingredient from one vendor can have multiple brands at different prices.
+Set the **distributor (vendor)** on the import form (e.g. Sysco) — it is not a column in the file. **Brand** is the product label (Heinz, etc.).
 
-Older column names (Ingredient, Pack price, etc.) and **Pack size** shorthand (`6/10#`) still work.
+Older column names, an optional Vendor column, and pack shorthand (`6/10#`) still work.
 
 Matching **ingredient + vendor + brand** rows are updated; new combinations are created.
 
@@ -79,7 +72,7 @@ Matching **ingredient + vendor + brand** rows are updated; new combinations are 
 ## Cost formula
 
 ```
-total pack weight = unitsPerPack × weightPerUnit (converted to lb)
+total pack weight = unitsPerPack × numeric unit size (converted to lb); descriptive sizes like `#10 can` are stored but may not compute $/lb
 cost per pound = packPrice ÷ total pack weight
 line cost = recipe quantity (in lb) × cost per pound
 ```

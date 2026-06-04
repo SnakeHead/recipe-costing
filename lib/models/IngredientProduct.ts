@@ -8,7 +8,7 @@ const ingredientProductSchema = new Schema(
     vendor: { type: String, required: true, trim: true },
     brand: { type: String, trim: true, default: "" },
     unitsPerPack: { type: Number, required: true, min: 0.001 },
-    weightPerUnit: { type: Number, required: true, min: 0.001 },
+    unitSize: { type: String, required: true, trim: true },
     weightUnit: {
       type: String,
       enum: ["lb", "oz", "kg", "g"],
@@ -28,7 +28,7 @@ ingredientProductSchema.pre("save", function () {
   const cost = calculateCostPerPound(
     this.packPrice,
     this.unitsPerPack,
-    this.weightPerUnit,
+    this.unitSize,
     this.weightUnit as WeightUnit,
   );
   if (cost !== null) this.costPerPound = cost;

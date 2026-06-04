@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     vendor?: string;
     brand?: string;
     unitsPerPack?: number;
-    weightPerUnit?: number;
+    unitSize?: string;
     weightUnit?: "lb" | "oz" | "kg" | "g";
     packPrice?: number;
     sku?: string;
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   }
   if (
     body.unitsPerPack == null ||
-    body.weightPerUnit == null ||
+    !body.unitSize?.trim() ||
     body.packPrice == null
   ) {
     return jsonError("Pack size and price are required");
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       vendor: body.vendor.trim(),
       brand: body.brand?.trim() ?? "",
       unitsPerPack: body.unitsPerPack,
-      weightPerUnit: body.weightPerUnit,
+      unitSize: body.unitSize.trim(),
       weightUnit: body.weightUnit ?? "lb",
       packPrice: body.packPrice,
       sku: body.sku?.trim() ?? "",

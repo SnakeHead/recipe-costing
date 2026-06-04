@@ -36,7 +36,7 @@ export default async function IngredientsPage({ searchParams }: Props) {
           vendor: i.vendor,
           brand: i.brand ?? "",
           unitsPerPack: i.unitsPerPack,
-          weightPerUnit: i.weightPerUnit,
+          unitSize: i.unitSize ?? "",
           weightUnit: i.weightUnit as "lb" | "oz" | "kg" | "g",
           packPrice: i.packPrice,
           costPerPound: i.costPerPound ?? undefined,

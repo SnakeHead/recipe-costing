@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatMoney, formatWeightPerPound } from "@/lib/costing";
+import { formatPackLine } from "@/lib/unit-size";
 import { Button, Card, Field, Input } from "@/components/ui";
 
 interface PreviewRow {
@@ -10,7 +11,7 @@ interface PreviewRow {
   vendor: string;
   brand: string;
   unitsPerPack: number;
-  weightPerUnit: number;
+  unitSize: string;
   weightUnit: string;
   packPrice: number;
   costPerPound: number | null;
@@ -38,6 +39,11 @@ export function IngredientSpreadsheetImport() {
   async function upload(dryRun: boolean) {
     if (!file) {
       setError("Choose an Excel file first");
+      return;
+    }
+
+    if (!vendor.trim()) {
+      setError("Enter the distributor (vendor) for this import");
       return;
     }
 
@@ -102,12 +108,17 @@ export function IngredientSpreadsheetImport() {
       </div>
 
       <div className="mt-4 space-y-4">
-        <Field label="Default vendor / distributor (optional)">
+        <Field label="Distributor (vendor) *">
           <Input
-            placeholder="Ben E. Keith — used when the sheet has no Vendor column"
+            placeholder="Ben E. Keith, Sysco, etc."
             value={vendor}
             onChange={(e) => setVendor(e.target.value)}
+            required
           />
+          <p className="mt-1 text-xs text-stone-500">
+            Applied to every row — your file uses Brand for the product label,
+            not the distributor.
+          </p>
         </Field>
 
         <Field label="Spreadsheet file">
@@ -145,34 +156,37 @@ export function IngredientSpreadsheetImport() {
           <summary className="cursor-pointer font-medium text-stone-700">
             Expected columns
           </summary>
+          <p className="mt-2 text-xs text-stone-500">
+            Column order (left to right):
+          </p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>
-              <strong>Item Name</strong> — ingredient name (required)
-            </li>
-            <li>
-              <strong>Vendor</strong> — distributor (or default vendor above)
-            </li>
-            <li>
-              <strong>Brand</strong> — product brand (e.g. Heinz)
+              <strong>Item #</strong> — SKU / item number
             </li>
             <li>
               <strong>Pack</strong> — units per case (e.g. 6)
             </li>
             <li>
-              <strong>Size</strong> + <strong>Unit</strong> — weight per unit (e.g.
-              10 + lb)
+              <strong>Size</strong> — unit size (e.g. 10, <code>#10 can</code>)
             </li>
             <li>
-              <strong>Price</strong> — case/pack price (required)
+              <strong>Unit</strong> — lb, oz, etc. (for $/lb when size is
+              numeric)
             </li>
             <li>
-              <strong>Item #</strong> — optional SKU
+              <strong>Brand</strong> — product brand (e.g. Heinz)
             </li>
-            <li className="text-stone-500">
-              Also supports older column names (Ingredient, Vendor, Pack price,
-              etc.) and pack shorthand <code>6/10#</code>
+            <li>
+              <strong>Item Name</strong> — ingredient name
+            </li>
+            <li>
+              <strong>Price</strong> — case/pack price
             </li>
           </ul>
+          <p className="mt-2 text-xs text-stone-500">
+            Distributor is set above, not in the file. Older column names and a
+            optional Vendor column still work.
+          </p>
         </details>
       </div>
 
@@ -220,7 +234,11 @@ export function IngredientSpreadsheetImport() {
                   <td className="px-3 py-2">{row.brand || "—"}</td>
                   <td className="px-3 py-2">{row.vendor}</td>
                   <td className="px-3 py-2">
-                    {row.unitsPerPack} × {row.weightPerUnit} {row.weightUnit}
+                    {formatPackLine(
+                      row.unitsPerPack,
+                      row.unitSize,
+                      row.weightUnit,
+                    )}
                   </td>
                   <td className="px-3 py-2">{formatMoney(row.packPrice)}</td>
                   <td className="px-3 py-2">

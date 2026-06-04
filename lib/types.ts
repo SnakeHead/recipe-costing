@@ -27,7 +27,7 @@ export interface ExtractedInvoiceLine {
   vendor?: string;
   brand?: string;
   unitsPerPack?: number;
-  weightPerUnit?: number;
+  unitSize?: string;
   weightUnit?: WeightUnit;
   packPrice?: number;
   quantityOrdered?: number;

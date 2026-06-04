@@ -30,7 +30,7 @@ export async function costRecipeLines(
       calculateCostPerPound(
         product.packPrice,
         product.unitsPerPack,
-        product.weightPerUnit,
+        product.unitSize,
         product.weightUnit,
       );
 
@@ -68,7 +68,7 @@ type ProductMatch = {
   brand: string;
   packPrice: number;
   unitsPerPack: number;
-  weightPerUnit: number;
+  unitSize: string;
   weightUnit: "lb" | "oz" | "kg" | "g";
   costPerPound?: number;
 };
