@@ -5,6 +5,7 @@ import type { WeightUnit } from "./types";
 export interface VendorSpreadsheetRow {
   name: string;
   vendor: string;
+  brand: string;
   unitsPerPack: number;
   weightPerUnit: number;
   weightUnit: WeightUnit;
@@ -22,6 +23,7 @@ export interface SpreadsheetParseResult {
 type FieldKey =
   | "name"
   | "vendor"
+  | "brand"
   | "unitsPerPack"
   | "weightPerUnit"
   | "weightUnit"
@@ -30,17 +32,26 @@ type FieldKey =
   | "notes"
   | "packSize";
 
+/** Exact header text (lowercase) before normalization — avoids "Item #" becoming "item". */
+const RAW_HEADER_ALIASES: Record<string, FieldKey> = {
+  "item #": "sku",
+  "item#": "sku",
+};
+
 const HEADER_ALIASES: Record<string, FieldKey> = {
   name: "name",
   ingredient: "name",
   "ingredient name": "name",
+  "item name": "name",
   product: "name",
   "product name": "name",
-  item: "name",
   description: "name",
   vendor: "vendor",
   supplier: "vendor",
   distributor: "vendor",
+  brand: "brand",
+  manufacturer: "brand",
+  pack: "unitsPerPack",
   "units per pack": "unitsPerPack",
   unitsperpack: "unitsPerPack",
   units: "unitsPerPack",
@@ -66,7 +77,6 @@ const HEADER_ALIASES: Record<string, FieldKey> = {
   "case pack": "packSize",
   sku: "sku",
   "item number": "sku",
-  "item #": "sku",
   "product code": "sku",
   notes: "notes",
   note: "notes",
@@ -78,6 +88,12 @@ function normalizeHeader(value: unknown): string {
     .replace(/[#]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function resolveHeaderField(cell: unknown): FieldKey | undefined {
+  const raw = String(cell ?? "").trim().toLowerCase();
+  if (RAW_HEADER_ALIASES[raw]) return RAW_HEADER_ALIASES[raw];
+  return HEADER_ALIASES[normalizeHeader(cell)];
 }
 
 function parseNumber(value: unknown): number | null {
@@ -117,7 +133,7 @@ function mapHeaders(headerRow: unknown[]): Map<FieldKey, number> {
   const mapping = new Map<FieldKey, number>();
 
   headerRow.forEach((cell, index) => {
-    const key = HEADER_ALIASES[normalizeHeader(cell)];
+    const key = resolveHeaderField(cell);
     if (key && !mapping.has(key)) mapping.set(key, index);
   });
 
@@ -150,16 +166,20 @@ export function parseVendorSpreadsheet(
 
   for (let i = 0; i < Math.min(grid.length, 20); i++) {
     const candidate = mapHeaders(grid[i]);
-    if (candidate.has("name") && (candidate.has("packPrice") || candidate.has("packSize"))) {
-      headerIndex = i;
-      columnMap = candidate;
-      break;
-    }
-    if (
+    const hasVendorFormat =
+      candidate.has("name") &&
+      candidate.has("packPrice") &&
+      candidate.has("unitsPerPack") &&
+      candidate.has("weightPerUnit");
+    const hasPackSizeFormat =
+      candidate.has("name") &&
+      (candidate.has("packPrice") || candidate.has("packSize"));
+    const hasLegacyFormat =
       candidate.has("name") &&
       candidate.has("unitsPerPack") &&
-      candidate.has("weightPerUnit")
-    ) {
+      candidate.has("weightPerUnit");
+
+    if (hasVendorFormat || hasPackSizeFormat || hasLegacyFormat) {
       headerIndex = i;
       columnMap = candidate;
       break;
@@ -173,7 +193,7 @@ export function parseVendorSpreadsheet(
         {
           row: 1,
           message:
-            'Could not find a header row. Required columns include "Ingredient" (or Name) and "Pack Price" (or Units per pack + Weight per unit).',
+            'Could not find a header row. Expected columns like "Item Name", "Brand", "Pack", "Size", "Unit", and "Price" (or similar names).',
         },
       ],
       skipped: 0,
@@ -208,9 +228,14 @@ export function parseVendorSpreadsheet(
     const vendor =
       String(getCell(row, "vendor")).trim() || defaultVendor.trim();
     if (!vendor) {
-      errors.push({ row: rowNumber, message: `Missing vendor for "${name}"` });
+      errors.push({
+        row: rowNumber,
+        message: `Missing vendor (distributor) for "${name}" — add a Vendor column or set default vendor`,
+      });
       continue;
     }
+
+    const brand = String(getCell(row, "brand")).trim();
 
     let unitsPerPack = parseNumber(getCell(row, "unitsPerPack"));
     let weightPerUnit = parseNumber(getCell(row, "weightPerUnit"));
@@ -239,6 +264,7 @@ export function parseVendorSpreadsheet(
     rows.push({
       name,
       vendor,
+      brand,
       unitsPerPack,
       weightPerUnit,
       weightUnit,
@@ -254,37 +280,34 @@ export function parseVendorSpreadsheet(
 export function buildVendorSpreadsheetTemplate(): Buffer {
   const data = [
     [
-      "Ingredient",
+      "Item #",
+      "Pack",
+      "Size",
+      "Unit",
       "Vendor",
-      "Units per pack",
-      "Weight per unit",
-      "Weight unit",
-      "Pack price",
-      "Pack size",
-      "SKU",
-      "Notes",
+      "Brand",
+      "Item Name",
+      "Price",
     ],
     [
-      "Ketchup",
-      "Ben E. Keith",
+      "KECH-001",
       6,
       10,
       "lb",
+      "Ben E. Keith",
+      "Heinz",
+      "Ketchup",
       75.23,
-      "6/10#",
-      "KECH-001",
-      "Example row",
     ],
     [
-      "Mayonnaise",
-      "Ben E. Keith",
+      "MAYO-002",
       4,
       5,
       "lb",
+      "Ben E. Keith",
+      "Hellmann's",
+      "Mayonnaise",
       42.5,
-      "",
-      "",
-      "",
     ],
   ];
 

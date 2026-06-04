@@ -8,6 +8,7 @@ import { Button, Card, Field, Input } from "@/components/ui";
 interface PreviewRow {
   name: string;
   vendor: string;
+  brand: string;
   unitsPerPack: number;
   weightPerUnit: number;
   weightUnit: string;
@@ -86,8 +87,9 @@ export function IngredientSpreadsheetImport() {
     <Card className="mb-6">
       <h2 className="font-semibold">Import from Excel</h2>
       <p className="mt-1 text-sm text-stone-600">
-        Upload vendor pricing from a spreadsheet (.xlsx, .xls, or .csv). Existing
-        ingredient + vendor pairs are updated.
+        Upload distributor pricing from a spreadsheet (.xlsx, .xls, or .csv).
+        Rows match on ingredient name + vendor + brand and are updated when they
+        already exist.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -100,7 +102,7 @@ export function IngredientSpreadsheetImport() {
       </div>
 
       <div className="mt-4 space-y-4">
-        <Field label="Default vendor (optional)">
+        <Field label="Default vendor / distributor (optional)">
           <Input
             placeholder="Ben E. Keith — used when the sheet has no Vendor column"
             value={vendor}
@@ -145,23 +147,31 @@ export function IngredientSpreadsheetImport() {
           </summary>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>
-              <strong>Ingredient</strong> (required) — also: Product, Item
+              <strong>Item Name</strong> — ingredient name (required)
             </li>
             <li>
-              <strong>Vendor</strong> — or set default vendor above
+              <strong>Vendor</strong> — distributor (or default vendor above)
             </li>
             <li>
-              <strong>Units per pack</strong> + <strong>Weight per unit</strong>{" "}
-              + <strong>Weight unit</strong> (lb, oz, kg, g)
+              <strong>Brand</strong> — product brand (e.g. Heinz)
             </li>
             <li>
-              Or <strong>Pack size</strong> shorthand: <code>6/10#</code> (6 × 10
-              lb)
+              <strong>Pack</strong> — units per case (e.g. 6)
             </li>
             <li>
-              <strong>Pack price</strong> (required)
+              <strong>Size</strong> + <strong>Unit</strong> — weight per unit (e.g.
+              10 + lb)
             </li>
-            <li>Optional: SKU, Notes</li>
+            <li>
+              <strong>Price</strong> — case/pack price (required)
+            </li>
+            <li>
+              <strong>Item #</strong> — optional SKU
+            </li>
+            <li className="text-stone-500">
+              Also supports older column names (Ingredient, Vendor, Pack price,
+              etc.) and pack shorthand <code>6/10#</code>
+            </li>
           </ul>
         </details>
       </div>
@@ -196,6 +206,7 @@ export function IngredientSpreadsheetImport() {
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
                 <th className="px-3 py-2">Ingredient</th>
+                <th className="px-3 py-2">Brand</th>
                 <th className="px-3 py-2">Vendor</th>
                 <th className="px-3 py-2">Pack</th>
                 <th className="px-3 py-2">Price</th>
@@ -206,6 +217,7 @@ export function IngredientSpreadsheetImport() {
               {preview.slice(0, 50).map((row, i) => (
                 <tr key={i} className="border-t border-stone-100">
                   <td className="px-3 py-2">{row.name}</td>
+                  <td className="px-3 py-2">{row.brand || "—"}</td>
                   <td className="px-3 py-2">{row.vendor}</td>
                   <td className="px-3 py-2">
                     {row.unitsPerPack} × {row.weightPerUnit} {row.weightUnit}

@@ -60,7 +60,7 @@ export default async function RecipeDetailPage({ params }: Props) {
             <tr>
               <th className="px-4 py-3">Ingredient</th>
               <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Vendor</th>
+              <th className="px-4 py-3">Brand / vendor</th>
               <th className="px-4 py-3">$/lb</th>
               <th className="px-4 py-3">Line cost</th>
             </tr>
@@ -73,7 +73,9 @@ export default async function RecipeDetailPage({ params }: Props) {
                   {line.quantity} {line.unit}
                 </td>
                 <td className="px-4 py-3 text-stone-500">
-                  {line.vendor ?? line.matchNote ?? "—"}
+                  {line.brand || line.vendor
+                    ? [line.brand, line.vendor].filter(Boolean).join(" · ")
+                    : (line.matchNote ?? "—")}
                 </td>
                 <td className="px-4 py-3">
                   {line.costPerPound != null

@@ -8,6 +8,7 @@ const extractionSchema = z.object({
     z.object({
       productName: z.string(),
       vendor: z.string().optional(),
+      brand: z.string().optional(),
       unitsPerPack: z.number().optional(),
       weightPerUnit: z.number().optional(),
       weightUnit: z.enum(["lb", "oz", "kg", "g"]).optional(),
@@ -24,7 +25,8 @@ For each line item, infer when possible:
 - unitsPerPack (how many units in the case/pack, e.g. 6 for "6/10#")
 - weightPerUnit and weightUnit (e.g. 10 lb per unit)
 - packPrice or lineTotal (use line total if pack price unclear)
-- vendor name from invoice header if visible
+- vendor: distributor on the invoice (header), not the product brand
+- brand: product brand when shown on the line (e.g. Heinz)
 
 Food distributors often use shorthand like "6/10#" meaning 6 units of 10 pounds each.
 Return JSON only matching the schema. Use weightUnit "lb" when unspecified.`;

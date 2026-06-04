@@ -13,6 +13,7 @@ export function IngredientForm({
   initial?: {
     name: string;
     vendor: string;
+    brand: string;
     unitsPerPack: number;
     weightPerUnit: number;
     weightUnit: WeightUnit;
@@ -25,6 +26,7 @@ export function IngredientForm({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [vendor, setVendor] = useState(initial?.vendor ?? "");
+  const [brand, setBrand] = useState(initial?.brand ?? "");
   const [unitsPerPack, setUnitsPerPack] = useState(
     String(initial?.unitsPerPack ?? 6),
   );
@@ -57,6 +59,7 @@ export function IngredientForm({
     const payload = {
       name,
       vendor,
+      brand,
       unitsPerPack: parseFloat(unitsPerPack),
       weightPerUnit: parseFloat(weightPerUnit),
       weightUnit,
@@ -96,8 +99,24 @@ export function IngredientForm({
       <Field label="Ingredient name *">
         <Input value={name} onChange={(e) => setName(e.target.value)} required />
       </Field>
-      <Field label="Vendor / distributor *">
-        <Input value={vendor} onChange={(e) => setVendor(e.target.value)} required />
+      <Field label="Vendor (distributor) *">
+        <Input
+          placeholder="Ben E. Keith"
+          value={vendor}
+          onChange={(e) => setVendor(e.target.value)}
+          required
+        />
+      </Field>
+      <Field label="Brand">
+        <Input
+          placeholder="Heinz, Hellmann's, etc."
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+        />
+        <p className="mt-1 text-xs text-stone-500">
+          Product brand — same ingredient from one vendor can have multiple brands
+          at different prices.
+        </p>
       </Field>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Units per pack *">

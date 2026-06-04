@@ -13,12 +13,13 @@ export async function GET(request: Request) {
           $or: [
             { name: { $regex: q, $options: "i" } },
             { vendor: { $regex: q, $options: "i" } },
+            { brand: { $regex: q, $options: "i" } },
           ],
         }
       : {};
 
     const ingredients = await IngredientProduct.find(filter)
-      .sort({ name: 1, vendor: 1 })
+      .sort({ name: 1, vendor: 1, brand: 1 })
       .lean();
     return jsonOk(ingredients);
   } catch (e) {
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
   const body = await parseJsonBody<{
     name?: string;
     vendor?: string;
+    brand?: string;
     unitsPerPack?: number;
     weightPerUnit?: number;
     weightUnit?: "lb" | "oz" | "kg" | "g";
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
     const ingredient = await IngredientProduct.create({
       name: body.name.trim(),
       vendor: body.vendor.trim(),
+      brand: body.brand?.trim() ?? "",
       unitsPerPack: body.unitsPerPack,
       weightPerUnit: body.weightPerUnit,
       weightUnit: body.weightUnit ?? "lb",
@@ -68,7 +71,9 @@ export async function POST(request: Request) {
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create ingredient";
     if (message.includes("duplicate key")) {
-      return jsonError("This ingredient already exists for that vendor");
+      return jsonError(
+        "This ingredient already exists for that vendor and brand",
+      );
     }
     return jsonError(message, 500);
   }

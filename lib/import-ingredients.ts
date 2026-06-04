@@ -4,20 +4,29 @@ import type { VendorSpreadsheetRow } from "./parse-vendor-spreadsheet";
 export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
   let created = 0;
   let updated = 0;
-  const failures: Array<{ name: string; vendor: string; message: string }> = [];
+  const failures: Array<{
+    name: string;
+    vendor: string;
+    brand: string;
+    message: string;
+  }> = [];
 
   for (const row of rows) {
     try {
-      const existing = await IngredientProduct.findOne({
+      const filter = {
         name: row.name,
         vendor: row.vendor,
-      });
+        brand: row.brand,
+      };
+
+      const existing = await IngredientProduct.findOne(filter);
 
       await IngredientProduct.findOneAndUpdate(
-        { name: row.name, vendor: row.vendor },
+        filter,
         {
           name: row.name,
           vendor: row.vendor,
+          brand: row.brand,
           unitsPerPack: row.unitsPerPack,
           weightPerUnit: row.weightPerUnit,
           weightUnit: row.weightUnit,
@@ -34,6 +43,7 @@ export async function upsertIngredientRows(rows: VendorSpreadsheetRow[]) {
       failures.push({
         name: row.name,
         vendor: row.vendor,
+        brand: row.brand,
         message: e instanceof Error ? e.message : "Import failed",
       });
     }

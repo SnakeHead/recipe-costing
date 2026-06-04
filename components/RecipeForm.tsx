@@ -10,6 +10,7 @@ interface PreviewLine {
   quantity: number;
   unit: string;
   vendor?: string;
+  brand?: string;
   costPerPound?: number;
   lineCost?: number;
   matchNote?: string;
@@ -119,7 +120,7 @@ export function RecipeForm({ clientId }: { clientId: string }) {
               <tr>
                 <th className="px-4 py-2">Ingredient</th>
                 <th className="px-4 py-2">Amount</th>
-                <th className="px-4 py-2">Vendor</th>
+                <th className="px-4 py-2">Brand / vendor</th>
                 <th className="px-4 py-2">$/lb</th>
                 <th className="px-4 py-2">Line cost</th>
               </tr>
@@ -132,7 +133,9 @@ export function RecipeForm({ clientId }: { clientId: string }) {
                     {line.quantity} {line.unit}
                   </td>
                   <td className="px-4 py-2 text-stone-500">
-                    {line.vendor ?? line.matchNote ?? "—"}
+                    {line.brand || line.vendor
+                      ? [line.brand, line.vendor].filter(Boolean).join(" · ")
+                      : (line.matchNote ?? "—")}
                   </td>
                   <td className="px-4 py-2">
                     {line.costPerPound != null

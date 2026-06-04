@@ -16,20 +16,30 @@ export async function costRecipeLines(
       };
     }
 
+    if ("ambiguous" in match && match.ambiguous) {
+      return {
+        ...line,
+        matchNote: match.message,
+      };
+    }
+
+    const product = match as ProductMatch;
+
     const costPerPound =
-      match.costPerPound ??
+      product.costPerPound ??
       calculateCostPerPound(
-        match.packPrice,
-        match.unitsPerPack,
-        match.weightPerUnit,
-        match.weightUnit,
+        product.packPrice,
+        product.unitsPerPack,
+        product.weightPerUnit,
+        product.weightUnit,
       );
 
     if (costPerPound === null) {
       return {
         ...line,
-        ingredientProductId: String(match._id),
-        vendor: match.vendor,
+        ingredientProductId: String(product._id),
+        vendor: product.vendor,
+        brand: product.brand,
         matchNote: "Could not calculate cost per pound",
       };
     }
@@ -42,8 +52,9 @@ export async function costRecipeLines(
 
     return {
       ...line,
-      ingredientProductId: String(match._id),
-      vendor: match.vendor,
+      ingredientProductId: String(product._id),
+      vendor: product.vendor,
+      brand: product.brand,
       costPerPound,
       lineCost: lineCost ?? undefined,
     };
@@ -54,6 +65,7 @@ type ProductMatch = {
   _id: unknown;
   name: string;
   vendor: string;
+  brand: string;
   packPrice: number;
   unitsPerPack: number;
   weightPerUnit: number;
@@ -61,18 +73,42 @@ type ProductMatch = {
   costPerPound?: number;
 };
 
-function findBestMatch(name: string, products: ProductMatch[]) {
+type AmbiguousMatch = { ambiguous: true; message: string };
+
+function findBestMatch(
+  name: string,
+  products: ProductMatch[],
+): ProductMatch | AmbiguousMatch | null {
   const normalized = name.trim().toLowerCase();
 
-  const exact = products.find((p) => p.name.toLowerCase() === normalized);
-  if (exact) return exact;
+  const exact = products.filter((p) => p.name.toLowerCase() === normalized);
+  if (exact.length > 1) {
+    const labels = exact
+      .map((p) => [p.brand, p.vendor].filter(Boolean).join(" / "))
+      .join("; ");
+    return {
+      ambiguous: true,
+      message: `Multiple products match "${name}" (${labels}) — use distinct ingredient names or brands in your database`,
+    };
+  }
+  if (exact.length === 1) return exact[0];
 
   const contains = products.filter(
     (p) =>
       p.name.toLowerCase().includes(normalized) ||
       normalized.includes(p.name.toLowerCase()),
   );
+  if (contains.length > 1) {
+    const labels = contains
+      .slice(0, 3)
+      .map((p) => [p.brand, p.vendor].filter(Boolean).join(" / "))
+      .join("; ");
+    return {
+      ambiguous: true,
+      message: `Multiple possible matches for "${name}" (${labels}${contains.length > 3 ? "…" : ""})`,
+    };
+  }
   if (contains.length === 1) return contains[0];
 
-  return contains.sort((a, b) => a.name.length - b.name.length)[0];
+  return contains.sort((a, b) => a.name.length - b.name.length)[0] ?? null;
 }

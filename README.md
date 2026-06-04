@@ -53,19 +53,22 @@ On **Ingredients**, use **Import from Excel** or download the template (`/api/in
 
 | Column | Required | Examples |
 |--------|----------|----------|
-| Ingredient | Yes | Ketchup |
-| Vendor | Yes* | Ben E. Keith |
-| Units per pack | Yes** | 6 |
-| Weight per unit | Yes** | 10 |
-| Weight unit | Yes** | lb |
-| Pack price | Yes | 75.23 |
-| Pack size | Alt.** | `6/10#` |
-| SKU, Notes | No | |
+| Item Name | Yes | Ketchup |
+| Vendor | Yes* | Ben E. Keith (distributor) |
+| Brand | No | Heinz (product brand) |
+| Pack | Yes | 6 (units per case) |
+| Size | Yes | 10 (weight per unit) |
+| Unit | Yes | lb |
+| Price | Yes | 75.23 |
+| Item # | No | KECH-001 |
 
-\*Or set a default vendor in the import form.  
-\**Required unless **Pack size** uses shorthand like `6/10#`.
+\*Or set a default **vendor** in the import form if the sheet has no Vendor column.
 
-Matching **ingredient + vendor** rows are updated; new pairs are created.
+**Vendor** is the distributor; **brand** is the product label. The same ingredient from one vendor can have multiple brands at different prices.
+
+Older column names (Ingredient, Pack price, etc.) and **Pack size** shorthand (`6/10#`) still work.
+
+Matching **ingredient + vendor + brand** rows are updated; new combinations are created.
 
 ## Recipe text formats
 

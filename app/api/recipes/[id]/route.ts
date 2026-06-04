@@ -68,6 +68,7 @@ export async function PATCH(request: Request, { params }: Params) {
         unit: line.unit,
         ingredientProductId: line.ingredientProductId,
         vendor: line.vendor,
+        brand: line.brand,
         costPerPound: line.costPerPound,
         lineCost: line.lineCost,
         matchNote: line.matchNote,

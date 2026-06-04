@@ -4,6 +4,7 @@ const extractedLineSchema = new Schema(
   {
     productName: { type: String, required: true, trim: true },
     vendor: { type: String, trim: true },
+    brand: { type: String, trim: true },
     unitsPerPack: { type: Number },
     weightPerUnit: { type: Number },
     weightUnit: { type: String, enum: ["lb", "oz", "kg", "g"] },

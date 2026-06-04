@@ -10,6 +10,7 @@ const recipeLineSchema = new Schema(
       ref: "IngredientProduct",
     },
     vendor: { type: String, trim: true },
+    brand: { type: String, trim: true },
     costPerPound: { type: Number },
     lineCost: { type: Number },
     matchNote: { type: String, trim: true },

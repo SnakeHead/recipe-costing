@@ -24,6 +24,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await parseJsonBody<{
     name?: string;
     vendor?: string;
+    brand?: string;
     unitsPerPack?: number;
     weightPerUnit?: number;
     weightUnit?: "lb" | "oz" | "kg" | "g";
@@ -39,6 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
       {
         ...(body?.name !== undefined && { name: body.name.trim() }),
         ...(body?.vendor !== undefined && { vendor: body.vendor.trim() }),
+        ...(body?.brand !== undefined && { brand: body.brand.trim() }),
         ...(body?.unitsPerPack !== undefined && {
           unitsPerPack: body.unitsPerPack,
         }),

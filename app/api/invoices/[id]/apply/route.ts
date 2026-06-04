@@ -13,6 +13,7 @@ export async function POST(request: Request, { params }: Params) {
       index: number;
       name?: string;
       vendor?: string;
+      brand?: string;
       unitsPerPack?: number;
       weightPerUnit?: number;
       weightUnit?: "lb" | "oz" | "kg" | "g";
@@ -43,6 +44,7 @@ export async function POST(request: Request, { params }: Params) {
       const name = override?.name ?? line.productName;
       const vendor =
         override?.vendor ?? line.vendor ?? invoice.vendor ?? "Unknown vendor";
+      const brand = override?.brand ?? line.brand ?? "";
       const unitsPerPack = override?.unitsPerPack ?? line.unitsPerPack;
       const weightPerUnit = override?.weightPerUnit ?? line.weightPerUnit;
       const weightUnit = override?.weightUnit ?? line.weightUnit ?? "lb";
@@ -59,10 +61,15 @@ export async function POST(request: Request, { params }: Params) {
       }
 
       const ingredient = await IngredientProduct.findOneAndUpdate(
-        { name: name.trim(), vendor: vendor.trim() },
         {
           name: name.trim(),
           vendor: vendor.trim(),
+          brand: brand.trim(),
+        },
+        {
+          name: name.trim(),
+          vendor: vendor.trim(),
+          brand: brand.trim(),
           unitsPerPack,
           weightPerUnit,
           weightUnit,

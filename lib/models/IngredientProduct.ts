@@ -6,6 +6,7 @@ const ingredientProductSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     vendor: { type: String, required: true, trim: true },
+    brand: { type: String, trim: true, default: "" },
     unitsPerPack: { type: Number, required: true, min: 0.001 },
     weightPerUnit: { type: Number, required: true, min: 0.001 },
     weightUnit: {
@@ -21,7 +22,7 @@ const ingredientProductSchema = new Schema(
   { timestamps: true },
 );
 
-ingredientProductSchema.index({ name: 1, vendor: 1 }, { unique: true });
+ingredientProductSchema.index({ name: 1, vendor: 1, brand: 1 }, { unique: true });
 
 ingredientProductSchema.pre("save", function () {
   const cost = calculateCostPerPound(

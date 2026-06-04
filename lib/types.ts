@@ -16,6 +16,7 @@ export interface ParsedRecipeLine {
 export interface CostedRecipeLine extends ParsedRecipeLine {
   ingredientProductId?: string;
   vendor?: string;
+  brand?: string;
   costPerPound?: number;
   lineCost?: number;
   matchNote?: string;
@@ -24,6 +25,7 @@ export interface CostedRecipeLine extends ParsedRecipeLine {
 export interface ExtractedInvoiceLine {
   productName: string;
   vendor?: string;
+  brand?: string;
   unitsPerPack?: number;
   weightPerUnit?: number;
   weightUnit?: WeightUnit;
