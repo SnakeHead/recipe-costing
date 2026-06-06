@@ -46,7 +46,7 @@ function costSingleLine(
     pounds: number;
   }>,
 ): CostedRecipeLine {
-  const candidates = buildCandidates(line.ingredientName, products);
+  const candidates = buildCandidates(line, products, conversions);
   const forced = line.ingredientProductId
     ? products.find((product) => String(product._id) === line.ingredientProductId)
     : undefined;
@@ -111,17 +111,48 @@ function costSingleLine(
 }
 
 function buildCandidates(
-  ingredientName: string,
+  line: RecipeLineInput,
   products: ProductMatch[],
+  conversions: Array<{
+    ingredientName: string;
+    measureQuantity: number;
+    measureUnit: string;
+    pounds: number;
+  }>,
 ): IngredientMatchCandidate[] {
-  return rankIngredientMatches(ingredientName, products, CANDIDATE_LIMIT).map(
-    ({ item, score }) => ({
-      ingredientProductId: String(item._id),
-      name: item.name,
-      vendor: item.vendor,
-      brand: item.brand,
-      score,
-    }),
+  return rankIngredientMatches(line.ingredientName, products, CANDIDATE_LIMIT).map(
+    ({ item, score }) => {
+      const costPerPound =
+        item.costPerPound ??
+        calculateCostPerPound(
+          item.packPrice,
+          item.unitsPerPack,
+          item.unitSize,
+          item.weightUnit,
+        );
+
+      const { lineCost } =
+        costPerPound !== null
+          ? calculateLineCost(
+              line.quantity,
+              line.unit,
+              costPerPound,
+              line.ingredientName,
+              conversions,
+            )
+          : { lineCost: null };
+
+      return {
+        ingredientProductId: String(item._id),
+        name: item.name,
+        vendor: item.vendor,
+        brand: item.brand,
+        score,
+        packPrice: item.packPrice,
+        costPerPound: costPerPound ?? undefined,
+        estimatedLineCost: lineCost ?? undefined,
+      };
+    },
   );
 }
 

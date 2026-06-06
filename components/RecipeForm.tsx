@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { RecipeLineEditor } from "@/components/RecipeLineEditor";
-import { formatMoney } from "@/lib/costing";
+import { formatMoney, formatWeightPerPound } from "@/lib/costing";
 import {
   createManualLine,
   manualLinesFromParsed,
@@ -33,9 +33,20 @@ function formatCandidateLabel(candidate: IngredientMatchCandidate): string {
     .filter(Boolean)
     .join(" · ");
   const score = `${Math.round(candidate.score * 100)}%`;
-  return brandVendor
-    ? `${candidate.name} (${brandVendor}) — ${score}`
-    : `${candidate.name} — ${score}`;
+  const priceParts: string[] = [];
+  if (candidate.costPerPound != null) {
+    priceParts.push(formatWeightPerPound(candidate.costPerPound));
+  } else if (candidate.packPrice != null) {
+    priceParts.push(`${formatMoney(candidate.packPrice)}/pack`);
+  }
+  if (candidate.estimatedLineCost != null) {
+    priceParts.push(`line ${formatMoney(candidate.estimatedLineCost)}`);
+  }
+  const price = priceParts.length > 0 ? priceParts.join(" · ") : "price unknown";
+  const identity = brandVendor
+    ? `${candidate.name} (${brandVendor})`
+    : candidate.name;
+  return `${identity} — ${price} — ${score}`;
 }
 
 export function RecipeForm({

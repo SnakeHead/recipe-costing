@@ -20,6 +20,9 @@ export interface IngredientMatchCandidate {
   vendor: string;
   brand: string;
   score: number;
+  packPrice?: number;
+  costPerPound?: number;
+  estimatedLineCost?: number;
 }
 
 export interface CostedRecipeLine extends ParsedRecipeLine {
