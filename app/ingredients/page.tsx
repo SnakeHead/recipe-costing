@@ -3,6 +3,7 @@ import { IngredientWeightConversion } from "@/lib/models/IngredientWeightConvers
 import { ensureDb } from "@/lib/db-ready";
 import { SetupRequired } from "@/components/SetupRequired";
 import { IngredientCatalog } from "@/components/IngredientCatalog";
+import { WeightConversionCatalog } from "@/components/WeightConversionCatalog";
 import { WeightConversionImport } from "@/components/WeightConversionImport";
 import { PageHeader } from "@/components/ui";
 
@@ -21,9 +22,11 @@ export default async function IngredientsPage({ searchParams }: Props) {
     );
   }
 
-  const [ingredients, conversionCount] = await Promise.all([
+  const [ingredients, conversions] = await Promise.all([
     IngredientProduct.find({}).sort({ name: 1, vendor: 1 }).lean(),
-    IngredientWeightConversion.countDocuments(),
+    IngredientWeightConversion.find()
+      .sort({ ingredientName: 1, measureUnit: 1 })
+      .lean(),
   ]);
 
   return (
@@ -32,7 +35,16 @@ export default async function IngredientsPage({ searchParams }: Props) {
         title="Ingredients"
         description="Track pricing by distributor (vendor), product brand, and pack size. The same ingredient can have multiple brands and prices from one vendor."
       />
-      <WeightConversionImport initialCount={conversionCount} />
+      <WeightConversionImport initialCount={conversions.length} />
+      <WeightConversionCatalog
+        initial={conversions.map((row) => ({
+          _id: String(row._id),
+          ingredientName: row.ingredientName,
+          measureQuantity: row.measureQuantity,
+          measureUnit: row.measureUnit,
+          pounds: row.pounds,
+        }))}
+      />
       <IngredientCatalog
         initial={ingredients.map((i) => ({
           _id: String(i._id),
