@@ -12,17 +12,30 @@ import {
   parsedLinesToRawText,
   type ManualRecipeLine,
 } from "@/lib/recipe-lines";
-import type { ParsedRecipeLine } from "@/lib/types";
+import type { IngredientMatchCandidate, ParsedRecipeLine } from "@/lib/types";
 
 interface PreviewLine {
   ingredientName: string;
   quantity: number;
   unit: string;
+  ingredientProductId?: string;
   vendor?: string;
   brand?: string;
   costPerPound?: number;
   lineCost?: number;
   matchNote?: string;
+  matchCandidates?: IngredientMatchCandidate[];
+  needsSelection?: boolean;
+}
+
+function formatCandidateLabel(candidate: IngredientMatchCandidate): string {
+  const brandVendor = [candidate.brand, candidate.vendor]
+    .filter(Boolean)
+    .join(" · ");
+  const score = `${Math.round(candidate.score * 100)}%`;
+  return brandVendor
+    ? `${candidate.name} (${brandVendor}) — ${score}`
+    : `${candidate.name} — ${score}`;
 }
 
 export function RecipeForm({
@@ -55,50 +68,83 @@ export function RecipeForm({
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
 
-  async function handlePreview() {
-    setParsing(true);
-    setError("");
-
+  function buildPreviewPayload() {
     const fromManual = manualLinesToParsed(manualLines);
-    const payload = fromManual
-      ? { lines: fromManual }
-      : rawText.trim()
-        ? { rawText }
-        : null;
-
-    if (!payload) {
-      setParsing(false);
-      setError("Enter ingredients line by line or paste text below");
-      return;
+    if (fromManual) {
+      return {
+        lines: fromManual.map((line, index) => ({
+          ...line,
+          ingredientProductId: preview[index]?.ingredientProductId,
+        })),
+      };
     }
+    if (rawText.trim()) return { rawText };
+    return null;
+  }
 
+  async function runPreview(payload: { lines?: ParsedRecipeLine[]; rawText?: string }) {
     const res = await fetch("/api/recipes/parse", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    setParsing(false);
-
     if (!res.ok) {
-      setError(data.error ?? "Failed to preview costs");
-      return;
+      throw new Error(data.error ?? "Failed to preview costs");
     }
-
     setPreview(data.lines);
     setTotalCost(data.totalCost);
-    if (fromManual) {
+    if (payload.lines) {
       setManualLines(manualLinesFromParsed(data.lines as ParsedRecipeLine[]));
     }
   }
 
-  function importTextToLines() {
-    const parsed = rawText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+  async function handlePreview() {
+    setParsing(true);
+    setError("");
 
-    if (parsed.length === 0) {
+    const payload = buildPreviewPayload();
+    if (!payload) {
+      setParsing(false);
+      setError("Enter ingredients line by line or paste text below");
+      return;
+    }
+
+    try {
+      await runPreview(payload);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to preview costs");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  async function handleProductSelection(index: number, productId: string) {
+    const fromManual = manualLinesToParsed(manualLines);
+    if (!fromManual?.[index]) return;
+
+    setParsing(true);
+    setError("");
+
+    const lines = fromManual.map((line, i) => ({
+      ...line,
+      ingredientProductId:
+        i === index
+          ? productId || undefined
+          : preview[i]?.ingredientProductId,
+    }));
+
+    try {
+      await runPreview({ lines });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update match");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  function importTextToLines() {
+    if (!rawText.trim()) {
       setError("Paste ingredients in the text area first");
       return;
     }
@@ -141,21 +187,26 @@ export function RecipeForm({
     }
 
     const fromManual = manualLinesToParsed(manualLines);
-    const linesToSave =
-      preview.length > 0
-        ? preview
-        : fromManual
-          ? await (async () => {
-              const res = await fetch("/api/recipes/parse", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ lines: fromManual }),
-              });
-              const data = await res.json();
-              if (!res.ok) return null;
-              return data.lines as PreviewLine[];
-            })()
-          : null;
+    let linesToSave = preview;
+
+    if (!linesToSave.length && fromManual) {
+      const res = await fetch("/api/recipes/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: fromManual.map((line, index) => ({
+            ...line,
+            ingredientProductId: preview[index]?.ingredientProductId,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to cost recipe before save");
+        return;
+      }
+      linesToSave = data.lines;
+    }
 
     if (!linesToSave?.length && !rawText.trim()) {
       setError("Add ingredients and preview costs before saving");
@@ -164,6 +215,11 @@ export function RecipeForm({
 
     if (!linesToSave?.length) {
       setError("Preview costs first, or complete all line-by-line fields");
+      return;
+    }
+
+    if (linesToSave.some((line) => line.needsSelection)) {
+      setError("Select an inventory item for each ambiguous ingredient before saving");
       return;
     }
 
@@ -211,9 +267,9 @@ export function RecipeForm({
           Ingredients — line by line
         </h3>
         <p className="mb-3 text-xs text-stone-500">
-          Enter each ingredient and amount on its own row. Names like{" "}
-          <em>Yellow Onions - Diced</em> are matched flexibly against your
-          inventory (e.g. <em>Onion Yellow Diced 3/8 Inch</em>).
+          Enter each ingredient and amount on its own row. Use cups or gallons for
+          wet ingredients after importing your weight conversion cheat sheet on
+          the Ingredients page.
         </p>
         <RecipeLineEditor lines={manualLines} onChange={setManualLines} />
       </div>
@@ -230,8 +286,8 @@ export function RecipeForm({
         </summary>
         <div className="mt-4 space-y-3">
           <p className="text-xs text-stone-500">
-            Formats: &quot;Ketchup, 3.4 lb&quot; · &quot;3.4 lb Ketchup&quot; ·
-            &quot;Yellow Onions - Diced, 2 lb&quot;
+            Formats: &quot;Ketchup, 3.4 lb&quot; · &quot;2 cup Worcestershire
+            Sauce&quot; · &quot;Yellow Onions - Diced, 2 lb&quot;
           </p>
           <Textarea
             rows={8}
@@ -270,24 +326,55 @@ export function RecipeForm({
               <tr>
                 <th className="px-4 py-2">Ingredient</th>
                 <th className="px-4 py-2">Amount</th>
-                <th className="px-4 py-2">Matched inventory</th>
+                <th className="px-4 py-2">Inventory match</th>
                 <th className="px-4 py-2">$/lb</th>
                 <th className="px-4 py-2">Line cost</th>
               </tr>
             </thead>
             <tbody>
               {preview.map((line, i) => (
-                <tr key={i} className="border-t border-stone-100">
+                <tr
+                  key={i}
+                  className={`border-t border-stone-100 ${line.needsSelection ? "bg-amber-50/60" : ""}`}
+                >
                   <td className="px-4 py-2">{line.ingredientName}</td>
                   <td className="px-4 py-2">
                     {line.quantity} {line.unit}
                   </td>
-                  <td className="px-4 py-2 text-stone-500">
-                    {line.matchNote
-                      ? line.matchNote
-                      : line.brand || line.vendor
-                        ? [line.brand, line.vendor].filter(Boolean).join(" · ")
-                        : "—"}
+                  <td className="px-4 py-2">
+                    {line.matchCandidates && line.matchCandidates.length > 0 ? (
+                      <div className="space-y-1">
+                        <select
+                          className="w-full min-w-[220px] rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm"
+                          value={line.ingredientProductId ?? ""}
+                          disabled={parsing}
+                          onChange={(e) =>
+                            void handleProductSelection(i, e.target.value)
+                          }
+                        >
+                          <option value="">
+                            {line.needsSelection
+                              ? "Choose inventory item…"
+                              : "Auto match"}
+                          </option>
+                          {line.matchCandidates.map((candidate) => (
+                            <option
+                              key={candidate.ingredientProductId}
+                              value={candidate.ingredientProductId}
+                            >
+                              {formatCandidateLabel(candidate)}
+                            </option>
+                          ))}
+                        </select>
+                        {line.matchNote && (
+                          <p className="text-xs text-stone-500">{line.matchNote}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-stone-500">
+                        {line.matchNote ?? "—"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2">
                     {line.costPerPound != null

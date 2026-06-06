@@ -1,5 +1,5 @@
 import type { ParsedRecipeLine } from "./types";
-import { normalizeUnit } from "./units";
+import { normalizeRecipeUnit } from "./recipe-units";
 
 const LINE_PATTERN =
   /^\s*(?:(.+?)\s*[-–:]\s*)?(\d+(?:\.\d+)?)\s*([a-zA-Z.]+)?\s+(.+?)\s*$|^\s*(.+?)\s*[-–:]\s*(\d+(?:\.\d+)?)\s*([a-zA-Z.]+)?\s*$|^\s*(\d+(?:\.\d+)?)\s*([a-zA-Z.]+)\s+(.+?)\s*$/i;
@@ -24,7 +24,7 @@ function parseLine(line: string): ParsedRecipeLine | null {
     const qtyUnit = tabParts[1].match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z.]+)?$/);
     if (qtyUnit) {
       const unit = qtyUnit[2] ?? "lb";
-      if (normalizeUnit(unit)) {
+      if (normalizeRecipeUnit(unit)) {
         return {
           ingredientName: tabParts[0],
           quantity: parseFloat(qtyUnit[1]),
@@ -39,7 +39,7 @@ function parseLine(line: string): ParsedRecipeLine | null {
     const qtyUnit = commaParts[1].match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z.]+)?$/i);
     if (qtyUnit) {
       const unit = qtyUnit[2] ?? "lb";
-      if (normalizeUnit(unit)) {
+      if (normalizeRecipeUnit(unit)) {
         return {
           ingredientName: commaParts[0],
           quantity: parseFloat(qtyUnit[1]),
@@ -54,7 +54,7 @@ function parseLine(line: string): ParsedRecipeLine | null {
 
   if (match[8]) {
     const unit = match[9] ?? "lb";
-    if (!normalizeUnit(unit)) return null;
+    if (!normalizeRecipeUnit(unit)) return null;
     return {
       quantity: parseFloat(match[8]),
       unit,
@@ -64,7 +64,7 @@ function parseLine(line: string): ParsedRecipeLine | null {
 
   if (match[5]) {
     const unit = match[7] ?? "lb";
-    if (!normalizeUnit(unit)) return null;
+    if (!normalizeRecipeUnit(unit)) return null;
     return {
       ingredientName: match[5].trim(),
       quantity: parseFloat(match[6]),
@@ -73,7 +73,7 @@ function parseLine(line: string): ParsedRecipeLine | null {
   }
 
   const unit = match[3] ?? "lb";
-  if (!normalizeUnit(unit)) return null;
+  if (!normalizeRecipeUnit(unit)) return null;
   return {
     ingredientName: (match[1] ?? match[4]).trim(),
     quantity: parseFloat(match[2]),

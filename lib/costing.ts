@@ -1,3 +1,4 @@
+import { recipeQuantityToPounds, type WeightConversionRow } from "./ingredient-weight";
 import { parseUnitSizeNumeric } from "./unit-size";
 import { toPounds } from "./units";
 import type { WeightUnit } from "./types";
@@ -19,10 +20,19 @@ export function calculateLineCost(
   recipeQuantity: number,
   recipeUnit: string,
   costPerPound: number,
-): number | null {
-  const pounds = toPounds(recipeQuantity, recipeUnit);
-  if (pounds === null) return null;
-  return pounds * costPerPound;
+  ingredientName = "",
+  conversions: WeightConversionRow[] = [],
+): { lineCost: number | null; conversionNote?: string } {
+  const { pounds, note } = recipeQuantityToPounds(
+    recipeQuantity,
+    recipeUnit,
+    ingredientName,
+    conversions,
+  );
+  if (pounds === null) {
+    return { lineCost: null, conversionNote: note };
+  }
+  return { lineCost: pounds * costPerPound, conversionNote: note };
 }
 
 export function formatMoney(amount: number): string {

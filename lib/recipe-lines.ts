@@ -1,5 +1,5 @@
 import type { ParsedRecipeLine } from "./types";
-import { normalizeUnit } from "./units";
+import { normalizeRecipeUnit } from "./recipe-units";
 
 export interface ManualRecipeLine {
   id: string;
@@ -43,7 +43,7 @@ export function manualLinesToParsed(
 
     if (!ingredientName) continue;
     if (!Number.isFinite(quantity) || quantity <= 0) return null;
-    if (!normalizeUnit(unit)) return null;
+    if (!normalizeRecipeUnit(unit)) return null;
 
     parsed.push({ ingredientName, quantity, unit });
   }

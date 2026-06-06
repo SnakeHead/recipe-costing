@@ -11,6 +11,15 @@ export interface ParsedRecipeLine {
   ingredientName: string;
   quantity: number;
   unit: string;
+  ingredientProductId?: string;
+}
+
+export interface IngredientMatchCandidate {
+  ingredientProductId: string;
+  name: string;
+  vendor: string;
+  brand: string;
+  score: number;
 }
 
 export interface CostedRecipeLine extends ParsedRecipeLine {
@@ -20,6 +29,8 @@ export interface CostedRecipeLine extends ParsedRecipeLine {
   costPerPound?: number;
   lineCost?: number;
   matchNote?: string;
+  matchCandidates?: IngredientMatchCandidate[];
+  needsSelection?: boolean;
 }
 
 export interface ExtractedInvoiceLine {

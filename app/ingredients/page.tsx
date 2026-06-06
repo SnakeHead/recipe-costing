@@ -1,7 +1,9 @@
 import { IngredientProduct } from "@/lib/models/IngredientProduct";
+import { IngredientWeightConversion } from "@/lib/models/IngredientWeightConversion";
 import { ensureDb } from "@/lib/db-ready";
 import { SetupRequired } from "@/components/SetupRequired";
 import { IngredientCatalog } from "@/components/IngredientCatalog";
+import { WeightConversionImport } from "@/components/WeightConversionImport";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +21,10 @@ export default async function IngredientsPage({ searchParams }: Props) {
     );
   }
 
-  const ingredients = await IngredientProduct.find({})
-    .sort({ name: 1, vendor: 1 })
-    .lean();
+  const [ingredients, conversionCount] = await Promise.all([
+    IngredientProduct.find({}).sort({ name: 1, vendor: 1 }).lean(),
+    IngredientWeightConversion.countDocuments(),
+  ]);
 
   return (
     <div>
@@ -29,6 +32,7 @@ export default async function IngredientsPage({ searchParams }: Props) {
         title="Ingredients"
         description="Track pricing by distributor (vendor), product brand, and pack size. The same ingredient can have multiple brands and prices from one vendor."
       />
+      <WeightConversionImport initialCount={conversionCount} />
       <IngredientCatalog
         initial={ingredients.map((i) => ({
           _id: String(i._id),
