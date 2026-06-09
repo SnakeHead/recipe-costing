@@ -279,8 +279,8 @@ export function RecipeForm({
         </h3>
         <p className="mb-3 text-xs text-stone-500">
           Enter each ingredient and amount on its own row. Use cups or gallons for
-          wet ingredients after importing your weight conversion cheat sheet on
-          the Ingredients page.
+          wet ingredients after importing your weight conversion cheat sheet under
+          Ingredients → Weight conversions.
         </p>
         <RecipeLineEditor lines={manualLines} onChange={setManualLines} />
       </div>
