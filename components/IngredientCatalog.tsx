@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IngredientForm } from "@/components/IngredientForm";
-import { IngredientSpreadsheetImport } from "@/components/IngredientSpreadsheetImport";
+import Link from "next/link";
 import { formatMoney, formatWeightPerPound } from "@/lib/costing";
 import { formatPackLine } from "@/lib/unit-size";
 import { Button, Card, Field, Input } from "@/components/ui";
@@ -58,7 +58,6 @@ export function IngredientCatalog({
 
   return (
     <div>
-      <IngredientSpreadsheetImport />
       <div className="grid gap-8 lg:grid-cols-2">
         <div>
           <Card className="mb-6">
@@ -81,9 +80,20 @@ export function IngredientCatalog({
           <div className="space-y-2">
             {filtered.length === 0 ? (
               <p className="text-sm text-stone-600">
-                {initial.length === 0
-                  ? "No ingredients yet."
-                  : "No ingredients match your search."}
+                {initial.length === 0 ? (
+                  <>
+                    No ingredients yet.{" "}
+                    <Link
+                      href="/ingredients/import"
+                      className="font-medium text-emerald-700 hover:underline"
+                    >
+                      Import from Excel
+                    </Link>{" "}
+                    or add one manually →
+                  </>
+                ) : (
+                  "No ingredients match your search."
+                )}
               </p>
             ) : (
               filtered.map((item) => (

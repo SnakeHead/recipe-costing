@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/ingredients", label: "Pricing", match: (path: string) => path === "/ingredients" },
   {
+    href: "/ingredients/import",
+    label: "Import",
+    match: (path: string) => path.startsWith("/ingredients/import"),
+  },
+  {
     href: "/ingredients/conversions",
     label: "Weight conversions",
     match: (path: string) => path.startsWith("/ingredients/conversions"),

@@ -92,7 +92,7 @@ export function IngredientSpreadsheetImport() {
   }
 
   return (
-    <Card className="mb-6">
+    <Card>
       <h2 className="font-semibold">Import from Excel</h2>
       <p className="mt-1 text-sm text-stone-600">
         Upload distributor pricing from a spreadsheet (.xlsx, .xls, or .csv).

@@ -10,7 +10,7 @@ export default function IngredientsLayout({
     <div>
       <PageHeader
         title="Ingredients"
-        description="Track distributor pricing and volume-to-weight conversions for recipe costing."
+        description="Search pricing, import distributor spreadsheets, and manage volume-to-weight conversions."
       />
       <IngredientsTabs />
       {children}
