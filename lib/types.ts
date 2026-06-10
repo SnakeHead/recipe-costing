@@ -1,5 +1,7 @@
 export type WeightUnit = "lb" | "oz" | "kg" | "g";
 
+export type CapMaterialType = "metal" | "plastic";
+
 export interface RecipeLineInput {
   ingredientName: string;
   quantity: number;
