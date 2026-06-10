@@ -17,6 +17,14 @@ export function calculateContainerPriceEach(
   return casePrice / unitsPerCase;
 }
 
+export function calculateCasePrice(
+  priceEach: number,
+  unitsPerCase: number,
+): number | null {
+  if (!unitsPerCase || unitsPerCase <= 0) return null;
+  return priceEach * unitsPerCase;
+}
+
 export function caseSizeLabel(caseSize: ContainerCaseSize): string {
   if (caseSize === "bulk") return "Bulk";
   return caseSize;

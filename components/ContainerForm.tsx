@@ -1,15 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Field, Input } from "@/components/ui";
 import { VendorSelect } from "@/components/VendorSelect";
 import {
+  calculateCasePrice,
   calculateContainerPriceEach,
   unitsPerCaseForSize,
 } from "@/lib/container-pricing";
 import { formatMoney } from "@/lib/costing";
 import { formatPriceEach } from "@/lib/packaging";
 import type { ContainerCaseSize, ContainerMaterialType } from "@/lib/types";
+
+type PriceSource = "case" | "each";
+
+function formatPriceInput(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  return String(Math.round(value * 10000) / 10000);
+}
 
 export function ContainerForm({
   initial,
@@ -46,6 +54,9 @@ export function ContainerForm({
   const [casePrice, setCasePrice] = useState(
     String(initial?.casePrice ?? 45),
   );
+  const [priceEach, setPriceEach] = useState(
+    String(initial?.priceEach ?? 7.5),
+  );
   const [bulkUnits, setBulkUnits] = useState(
     String(
       initial?.caseSize === "bulk" ? (initial?.unitsPerCase ?? 100) : 100,
@@ -58,6 +69,7 @@ export function ContainerForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const priceSource = useRef<PriceSource>("case");
 
   const unitsPerCase = useMemo(
     () =>
@@ -68,10 +80,40 @@ export function ContainerForm({
     [caseSize, bulkUnits],
   );
 
-  const previewPrice = useMemo(
-    () => calculateContainerPriceEach(parseFloat(casePrice) || 0, unitsPerCase),
-    [casePrice, unitsPerCase],
-  );
+  useEffect(() => {
+    if (unitsPerCase <= 0) return;
+
+    if (priceSource.current === "case") {
+      const derived = calculateContainerPriceEach(
+        parseFloat(casePrice) || 0,
+        unitsPerCase,
+      );
+      if (derived !== null) setPriceEach(formatPriceInput(derived));
+      return;
+    }
+
+    const derived = calculateCasePrice(parseFloat(priceEach) || 0, unitsPerCase);
+    if (derived !== null) setCasePrice(formatPriceInput(derived));
+    // Recalculate the derived price when pack size changes, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitsPerCase]);
+
+  function handleCasePriceChange(value: string) {
+    priceSource.current = "case";
+    setCasePrice(value);
+    const derived = calculateContainerPriceEach(
+      parseFloat(value) || 0,
+      unitsPerCase,
+    );
+    if (derived !== null) setPriceEach(formatPriceInput(derived));
+  }
+
+  function handlePriceEachChange(value: string) {
+    priceSource.current = "each";
+    setPriceEach(value);
+    const derived = calculateCasePrice(parseFloat(value) || 0, unitsPerCase);
+    if (derived !== null) setCasePrice(formatPriceInput(derived));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,6 +159,9 @@ export function ContainerForm({
       setNotes("");
     }
   }
+
+  const parsedCase = parseFloat(casePrice) || 0;
+  const parsedEach = parseFloat(priceEach) || 0;
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg">
@@ -169,37 +214,56 @@ export function ContainerForm({
             <option value="bulk">Bulk</option>
           </select>
         </Field>
-        <Field label="Case price ($) *">
+        {caseSize === "bulk" ? (
+          <Field label="Units in bulk case *">
+            <Input
+              type="number"
+              min="1"
+              step="1"
+              value={bulkUnits}
+              onChange={(e) => setBulkUnits(e.target.value)}
+              required
+            />
+          </Field>
+        ) : (
+          <Field label="Units per case">
+            <Input
+              type="text"
+              value={unitsPerCase.toLocaleString()}
+              readOnly
+              className="bg-stone-50 text-stone-600"
+            />
+          </Field>
+        )}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Case price ($)">
           <Input
             type="number"
             min="0"
             step="0.01"
             value={casePrice}
-            onChange={(e) => setCasePrice(e.target.value)}
-            required
+            onChange={(e) => handleCasePriceChange(e.target.value)}
+          />
+        </Field>
+        <Field label="Price per container ($)">
+          <Input
+            type="number"
+            min="0"
+            step="0.0001"
+            value={priceEach}
+            onChange={(e) => handlePriceEachChange(e.target.value)}
           />
         </Field>
       </div>
-      {caseSize === "bulk" && (
-        <Field label="Units in bulk case *">
-          <Input
-            type="number"
-            min="1"
-            step="1"
-            value={bulkUnits}
-            onChange={(e) => setBulkUnits(e.target.value)}
-            required
-          />
-        </Field>
-      )}
-      {previewPrice != null && (
+      <p className="mb-4 text-xs text-stone-500">
+        Enter either field — the other updates from case size (
+        {unitsPerCase.toLocaleString()} units).
+      </p>
+      {parsedCase > 0 && parsedEach > 0 && unitsPerCase > 0 && (
         <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          Cost per bottle: <strong>{formatPriceEach(previewPrice)}</strong>
-          <span className="text-emerald-700">
-            {" "}
-            ({formatMoney(parseFloat(casePrice) || 0)} case ÷{" "}
-            {unitsPerCase.toLocaleString()})
-          </span>
+          <strong>{formatMoney(parsedCase)}</strong> per case →{" "}
+          <strong>{formatPriceEach(parsedEach)}</strong>
         </p>
       )}
       <Field label="Min order qty *">
