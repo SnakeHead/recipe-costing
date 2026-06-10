@@ -4,18 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ContainerForm } from "@/components/ContainerForm";
 import { Button, Card, Field, Input } from "@/components/ui";
+import { caseSizeLabel } from "@/lib/container-pricing";
 import { formatMoney } from "@/lib/costing";
 import {
   containerGroupKey,
+  containerMaterialTypeLabel,
   formatPriceEach,
   groupByKey,
 } from "@/lib/packaging";
+import type { ContainerCaseSize, ContainerMaterialType } from "@/lib/types";
 
 interface ContainerRow {
   _id: string;
   name: string;
   vendor: string;
   size: string;
+  materialType: ContainerMaterialType;
+  caseSize: ContainerCaseSize;
+  casePrice: number;
+  unitsPerCase: number;
   priceEach: number;
   minOrderQty: number;
   sku?: string;
@@ -29,15 +36,18 @@ function filterContainers(items: ContainerRow[], query: string) {
     (item) =>
       item.name.toLowerCase().includes(q) ||
       item.vendor.toLowerCase().includes(q) ||
-      item.size.toLowerCase().includes(q),
+      item.size.toLowerCase().includes(q) ||
+      item.materialType.toLowerCase().includes(q),
   );
 }
 
 export function ContainerCatalog({
   initial,
+  knownVendors,
   initialQuery,
 }: {
   initial: ContainerRow[];
+  knownVendors: string[];
   initialQuery: string;
 }) {
   const router = useRouter();
@@ -51,7 +61,9 @@ export function ContainerCatalog({
 
   const groups = useMemo(
     () =>
-      groupByKey(filtered, (item) => containerGroupKey(item.name, item.size)),
+      groupByKey(filtered, (item) =>
+        containerGroupKey(item.name, item.size, item.materialType),
+      ),
     [filtered],
   );
 
@@ -68,7 +80,7 @@ export function ContainerCatalog({
           <Field label="Search containers">
             <Input
               type="search"
-              placeholder="Search by name, size, or vendor…"
+              placeholder="Search by name, size, vendor, or material…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
@@ -97,7 +109,10 @@ export function ContainerCatalog({
                     <h3 className="text-lg font-semibold text-stone-900">
                       {first.name}
                     </h3>
-                    <p className="text-sm text-stone-500">{first.size}</p>
+                    <p className="text-sm text-stone-500">
+                      {first.size} ·{" "}
+                      {containerMaterialTypeLabel(first.materialType)}
+                    </p>
                     {group.items.length > 1 && (
                       <p className="mt-1 text-xs text-emerald-800">
                         {group.items.length} vendors — best{" "}
@@ -129,6 +144,8 @@ export function ContainerCatalog({
                               )}
                             </p>
                             <p className="mt-0.5 text-xs text-stone-500">
+                              {caseSizeLabel(item.caseSize)} @{" "}
+                              {formatMoney(item.casePrice)} →{" "}
                               {formatPriceEach(item.priceEach)} · min{" "}
                               {item.minOrderQty.toLocaleString()}
                             </p>
@@ -164,12 +181,17 @@ export function ContainerCatalog({
         <ContainerForm
           key={editing?._id ?? "new"}
           containerId={editing?._id}
+          knownVendors={knownVendors}
           initial={
             editing
               ? {
                   name: editing.name,
                   vendor: editing.vendor,
                   size: editing.size,
+                  materialType: editing.materialType,
+                  caseSize: editing.caseSize,
+                  casePrice: editing.casePrice,
+                  unitsPerCase: editing.unitsPerCase,
                   priceEach: editing.priceEach,
                   minOrderQty: editing.minOrderQty,
                   sku: editing.sku ?? "",

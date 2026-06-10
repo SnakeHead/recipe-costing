@@ -1,10 +1,23 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
+import { calculateContainerPriceEach } from "@/lib/container-pricing";
 
 const containerProductSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     vendor: { type: String, required: true, trim: true },
     size: { type: String, required: true, trim: true },
+    materialType: {
+      type: String,
+      enum: ["glass", "plastic"],
+      default: "glass",
+    },
+    caseSize: {
+      type: String,
+      enum: ["6pk", "12pk", "bulk"],
+      default: "bulk",
+    },
+    casePrice: { type: Number, required: true, min: 0 },
+    unitsPerCase: { type: Number, required: true, min: 1 },
     priceEach: { type: Number, required: true, min: 0 },
     minOrderQty: { type: Number, required: true, min: 1, default: 1 },
     sku: { type: String, trim: true, default: "" },
@@ -21,12 +34,17 @@ containerProductSchema.index(
   },
 );
 containerProductSchema.index(
-  { name: 1, vendor: 1, size: 1 },
+  { name: 1, vendor: 1, size: 1, materialType: 1, caseSize: 1 },
   {
     unique: true,
     partialFilterExpression: { sku: { $eq: "" } },
   },
 );
+
+containerProductSchema.pre("save", function () {
+  const cost = calculateContainerPriceEach(this.casePrice, this.unitsPerCase);
+  if (cost !== null) this.priceEach = cost;
+});
 
 export type ContainerProductDocument = InferSchemaType<
   typeof containerProductSchema

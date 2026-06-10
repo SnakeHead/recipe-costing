@@ -2,6 +2,10 @@ export type WeightUnit = "lb" | "oz" | "kg" | "g";
 
 export type CapMaterialType = "metal" | "plastic";
 
+export type ContainerCaseSize = "6pk" | "12pk" | "bulk";
+
+export type ContainerMaterialType = "glass" | "plastic";
+
 export interface RecipeLineInput {
   ingredientName: string;
   quantity: number;

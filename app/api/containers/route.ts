@@ -1,7 +1,9 @@
 import { connectDB } from "@/lib/mongodb";
 import { ContainerProduct } from "@/lib/models/ContainerProduct";
+import { buildContainerPricingFields } from "@/lib/container-pricing";
 import { buildContainerUpsertFilter } from "@/lib/packaging-keys";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import type { ContainerCaseSize, ContainerMaterialType } from "@/lib/types";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,7 +39,10 @@ export async function POST(request: Request) {
     name?: string;
     vendor?: string;
     size?: string;
-    priceEach?: number;
+    materialType?: ContainerMaterialType;
+    caseSize?: ContainerCaseSize;
+    casePrice?: number;
+    unitsPerCase?: number;
     minOrderQty?: number;
     sku?: string;
     notes?: string;
@@ -46,17 +51,24 @@ export async function POST(request: Request) {
   if (!body?.name?.trim() || !body?.vendor?.trim() || !body?.size?.trim()) {
     return jsonError("Container name, vendor, and size are required");
   }
-  if (body.priceEach == null) {
-    return jsonError("Price each is required");
+  if (body.casePrice == null || !body.caseSize) {
+    return jsonError("Case size and case price are required");
   }
 
   try {
     await connectDB();
+    const pricing = buildContainerPricingFields({
+      caseSize: body.caseSize,
+      casePrice: body.casePrice,
+      unitsPerCase: body.unitsPerCase,
+    });
+
     const payload = {
       name: body.name.trim(),
       vendor: body.vendor.trim(),
       size: body.size.trim(),
-      priceEach: body.priceEach,
+      materialType: body.materialType ?? "glass",
+      ...pricing,
       minOrderQty: body.minOrderQty ?? 1,
       sku: body.sku?.trim() ?? "",
       notes: body.notes?.trim() ?? "",
@@ -73,7 +85,7 @@ export async function POST(request: Request) {
     const message = e instanceof Error ? e.message : "Failed to create container";
     if (message.includes("duplicate key")) {
       return jsonError(
-        "A container with this vendor and SKU (or name + size) already exists",
+        "A container with this vendor and SKU (or matching details) already exists",
       );
     }
     return jsonError(message, 500);

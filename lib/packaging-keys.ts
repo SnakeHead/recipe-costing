@@ -3,6 +3,8 @@ export function buildContainerUpsertFilter(input: {
   name: string;
   vendor: string;
   size: string;
+  materialType: string;
+  caseSize: string;
   sku?: string;
 }): Record<string, string> {
   const sku = input.sku?.trim();
@@ -13,6 +15,8 @@ export function buildContainerUpsertFilter(input: {
     name: input.name.trim(),
     vendor: input.vendor.trim(),
     size: input.size.trim(),
+    materialType: input.materialType.trim(),
+    caseSize: input.caseSize.trim(),
   };
 }
 

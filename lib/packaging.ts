@@ -4,8 +4,16 @@ export function formatPriceEach(price: number): string {
   return `${formatMoney(price)} each`;
 }
 
-export function containerGroupKey(name: string, size: string): string {
-  return `${name.trim().toLowerCase()}|${size.trim().toLowerCase()}`;
+export function containerGroupKey(
+  name: string,
+  size: string,
+  materialType: string,
+): string {
+  return [
+    name.trim().toLowerCase(),
+    size.trim().toLowerCase(),
+    materialType.trim().toLowerCase(),
+  ].join("|");
 }
 
 export function capGroupKey(
@@ -52,4 +60,8 @@ export function groupByKey<T extends { priceEach: number }>(
 
 export function materialTypeLabel(type: string): string {
   return type === "metal" ? "Metal" : "Plastic";
+}
+
+export function containerMaterialTypeLabel(type: string): string {
+  return type === "plastic" ? "Plastic" : "Glass";
 }

@@ -1,6 +1,8 @@
 import { connectDB } from "@/lib/mongodb";
 import { ContainerProduct } from "@/lib/models/ContainerProduct";
+import { buildContainerPricingFields } from "@/lib/container-pricing";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import type { ContainerCaseSize, ContainerMaterialType } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -25,7 +27,10 @@ export async function PATCH(request: Request, { params }: Params) {
     name?: string;
     vendor?: string;
     size?: string;
-    priceEach?: number;
+    materialType?: ContainerMaterialType;
+    caseSize?: ContainerCaseSize;
+    casePrice?: number;
+    unitsPerCase?: number;
     minOrderQty?: number;
     sku?: string;
     notes?: string;
@@ -33,23 +38,40 @@ export async function PATCH(request: Request, { params }: Params) {
 
   try {
     await connectDB();
-    const container = await ContainerProduct.findByIdAndUpdate(
-      id,
-      {
-        ...(body?.name !== undefined && { name: body.name.trim() }),
-        ...(body?.vendor !== undefined && { vendor: body.vendor.trim() }),
-        ...(body?.size !== undefined && { size: body.size.trim() }),
-        ...(body?.priceEach !== undefined && { priceEach: body.priceEach }),
-        ...(body?.minOrderQty !== undefined && {
-          minOrderQty: body.minOrderQty,
-        }),
-        ...(body?.sku !== undefined && { sku: body.sku.trim() }),
-        ...(body?.notes !== undefined && { notes: body.notes.trim() }),
-      },
-      { new: true, runValidators: true },
-    ).lean();
-    if (!container) return jsonError("Container not found", 404);
-    return jsonOk(container);
+    const existing = await ContainerProduct.findById(id);
+    if (!existing) return jsonError("Container not found", 404);
+
+    if (body?.name !== undefined) existing.name = body.name.trim();
+    if (body?.vendor !== undefined) existing.vendor = body.vendor.trim();
+    if (body?.size !== undefined) existing.size = body.size.trim();
+    if (body?.materialType !== undefined) {
+      existing.materialType = body.materialType;
+    }
+    if (body?.minOrderQty !== undefined) {
+      existing.minOrderQty = body.minOrderQty;
+    }
+    if (body?.sku !== undefined) existing.sku = body.sku.trim();
+    if (body?.notes !== undefined) existing.notes = body.notes.trim();
+
+    const pricingTouched =
+      body?.caseSize !== undefined ||
+      body?.casePrice !== undefined ||
+      body?.unitsPerCase !== undefined;
+
+    if (pricingTouched) {
+      const pricing = buildContainerPricingFields({
+        caseSize: body?.caseSize ?? existing.caseSize ?? "bulk",
+        casePrice: body?.casePrice ?? existing.casePrice ?? existing.priceEach,
+        unitsPerCase: body?.unitsPerCase ?? existing.unitsPerCase ?? 1,
+      });
+      existing.caseSize = pricing.caseSize;
+      existing.casePrice = pricing.casePrice;
+      existing.unitsPerCase = pricing.unitsPerCase;
+      existing.priceEach = pricing.priceEach;
+    }
+
+    await existing.save();
+    return jsonOk(existing.toObject());
   } catch (e) {
     return jsonError(
       e instanceof Error ? e.message : "Failed to update container",
